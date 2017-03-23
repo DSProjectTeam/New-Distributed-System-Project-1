@@ -18,8 +18,7 @@ public class test {
 		//hello
 		
 =======
-		//jhhhhj
->>>>>>> origin/master
+
 
 	}
 
