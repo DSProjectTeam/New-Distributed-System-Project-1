@@ -12,6 +12,7 @@ public class test {
 		//new changes byu tester
 		//Hello!NiceToMeetYouAll!
 		
+		System.out.println("Hello");
 
 	}
 
