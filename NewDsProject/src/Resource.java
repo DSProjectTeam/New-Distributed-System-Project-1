@@ -1,5 +1,6 @@
 import java.awt.List;
 import java.io.File;
+import java.util.ArrayList;
 
 public class Resource {
 	
@@ -10,7 +11,7 @@ public class Resource {
 	private String description;
 	
 	/**optional user supplied list of tag, default is empty list */
-	private List tag;
+	private ArrayList<String> tag;
 	
 	/**mandatory user supplied absolute URI */ 
 	private String URI;
@@ -31,10 +32,22 @@ public class Resource {
 	public Resource(String uri){
 		this.name = "";
 		this.description = "";
-		this.tag = new List();
+		this.tag = new ArrayList<String>();
 		this.URI = uri;
 		this.channel = "";
 		this.owner = "";
+		this.EZserver = "";
+		this.file = new resourceFile(uri);
+	}
+	
+	public Resource(String name, ArrayList<String> tag, String description, String uri,
+			String channel, String owner){
+		this.name = name;
+		this.description = description;
+		this.tag = tag;
+		this.URI = uri;
+		this.channel = channel;
+		this.owner = owner;
 		this.EZserver = "";
 		this.file = new resourceFile(uri);
 	}
