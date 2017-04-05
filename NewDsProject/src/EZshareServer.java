@@ -2,10 +2,13 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class EZshareServer {
 	static ServerSocket server;
-	public static ArrayList<Resource> resources;
+	
+	/**key of this hash map is the URI of a resource, value is resource*/
+	public  HashMap<String, Resource> resources;
 	
 	public EZshareServer(){};
 	
@@ -23,10 +26,11 @@ public class EZshareServer {
 	public void initializeServer(int serverPort){
 		try {
 			this.server  = new ServerSocket(serverPort);
-			this.resources = new ArrayList<Resource>();
+			this.resources = new HashMap<String, Resource>();
 			
 			while(true){
 				Socket client = server.accept();
+				System.out.println("client applying for connection");
 				new Thread(new ServerThread(client, resources)).start();
 			}
 			
