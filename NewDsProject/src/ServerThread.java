@@ -5,19 +5,21 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class ServerThread extends Thread{
 	Socket clientSocket;
-	static ArrayList<Resource> resources;
+	private HashMap<String, Resource> resources;
 	
 	private BufferedReader input;
 	
 	private BufferedWriter output;
 	
-	public ServerThread(Socket socket, ArrayList<Resource> resources){
+	public ServerThread(Socket socket, HashMap<String, Resource> resources){
 		try {
 			this.clientSocket = socket;
 			this.resources = resources;	
@@ -67,7 +69,7 @@ public class ServerThread extends Thread{
 				String channel = (String) jsonObject.get(ConstantEnum.CommandArgument.channel.name());
 				String owner = (String) jsonObject.get(ConstantEnum.CommandArgument.owner.name());
 				//EZserver is not here!
-				ServerCommandHandler.handlingPublish(new Resource(name, tag, description, uri, channel, owner));
+				ServerHandler.handlingPublish(new Resource(name, tag, description, uri, channel, owner),this.resources);
 				break;
 			case remove:
 				String [] tags_remove = (String[]) jsonObject.get(ConstantEnum.CommandArgument.tags.name());
@@ -78,7 +80,7 @@ public class ServerThread extends Thread{
 				String channel_remove = (String) jsonObject.get(ConstantEnum.CommandArgument.channel.name());
 				String owner_remove = (String) jsonObject.get(ConstantEnum.CommandArgument.owner.name());
 				//EZserver is not here!
-				ServerCommandHandler.handlingRemove(new Resource(name_remove, tag_remove, description_remove, uri_remove, channel_remove, owner_remove));
+				ServerHandler.handlingRemove(new Resource(name_remove, tag_remove, description_remove, uri_remove, channel_remove, owner_remove));
 				break;
 			case share:
 				String [] tags_share = (String[]) jsonObject.get(ConstantEnum.CommandArgument.tags.name());
@@ -90,7 +92,7 @@ public class ServerThread extends Thread{
 				String owner_share = (String) jsonObject.get(ConstantEnum.CommandArgument.owner.name());
 				String secret_share = (String) jsonObject.get(ConstantEnum.CommandArgument.secret.name());
 				//EZserver is not here!
-				ServerCommandHandler.HandlingShare(new Resource(name_share, tag_share, description_share, uri_share, channel_share, owner_share),secret_share);
+				ServerHandler.HandlingShare(new Resource(name_share, tag_share, description_share, uri_share, channel_share, owner_share),secret_share);
 				break;
 			case fetch:
 				
