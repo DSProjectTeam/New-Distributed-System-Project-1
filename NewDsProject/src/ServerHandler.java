@@ -1,13 +1,19 @@
+import java.util.Queue;
 
-public class ServerCommandHandler {
+import org.json.JSONObject;
+
+public class ServerHandler {
 	
+	public Queue<String> clientQueue;
 	
 	public synchronized static void handlingPublish(Resource resource){
 		String errorMessage;
 		String response;
-		Boolean success = false;
+		Boolean success = false;	
+		JSONObject errorMsg = new JSONObject();
 		if(resource.URI==null){
 			errorMessage = "missing resource";
+			
 		}else{
 			
 		}
@@ -20,5 +26,6 @@ public class ServerCommandHandler {
 	public synchronized static void HandlingShare (Resource resource, String secret){
 		
 	}
+	
 
 }
