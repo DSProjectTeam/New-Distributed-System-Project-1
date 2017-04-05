@@ -27,6 +27,8 @@ public class Resource {
 	
 	resourceFile file;
 	
+	public Resource(){};
+	
 	/**constructor for this class, each instance variables are "" by default
 	 * except URI should be initialized*/
 	public Resource(String uri){
