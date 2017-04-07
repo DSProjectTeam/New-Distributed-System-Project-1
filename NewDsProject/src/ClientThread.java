@@ -1,4 +1,3 @@
-package dsdemo;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -9,7 +8,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
@@ -24,14 +23,15 @@ public class ClientThread extends Thread{
 	
 	public ClientThread(Socket socket){
 		try {
-			this.serverSocket = socket;
+			this.clientSocket = socket;
 			this.output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 			this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			
+			
 		} catch (IOException e) {
-			if(serverSocket!=null){
+			if(clientSocket!=null){
 				try {
-					serverSocket.close();
+					clientSocket.close();
 				} catch (IOException e2) {
 					// TODO: handle exception
 				}
@@ -41,15 +41,27 @@ public class ClientThread extends Thread{
 
 
 	
+	@Override
+	public void run() {
+		try {
+			String inputMessage = input.readLine();
+			
+			
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
 	
 	
 	public void getReadyAndSend(String args[]){
-	
+		JSONObject publish = new JSONObject();
 		String command = args[0];
 		switch (command){//要考虑command为空的错误情况
-		case -publish:
-			JSONObject publish = new JSONObject();
-			publish.put("command", command);//command等的值均来自ClientHandler.java中command的值
+		case "-publish":
+			
+			publish.put(ConstantEnum.CommandType.publish.publish, command);//command等的值均来自ClientHandler.java中command的值
 			publish.put("name",name);
 			publish.put("tags",tags);//注意格式
 			publish.put("description",description);
@@ -57,9 +69,10 @@ public class ClientThread extends Thread{
 			publish.put("channel",name);
 			publish.put("owner",owner);
 			publish.put("ezserver",ezserver);
+			
 			break;
 			
-		case -remove:
+		case "-remove":
 			break;
 			
 		default: break;
