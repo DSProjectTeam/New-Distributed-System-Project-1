@@ -23,7 +23,7 @@ public class Client {
 			//outputSteam
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			JSONObject userinput = handleClientInput();
-			out.writeUTF(userinput+"\n");
+			out.writeUTF(userinput.toJSONString());
 		
 			out.flush();
 			
