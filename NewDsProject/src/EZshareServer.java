@@ -31,7 +31,7 @@ public class EZshareServer {
 			while(true){
 				Socket client = server.accept();
 				System.out.println("client applying for connection");
-				new Thread(new ServerThread(client, resources,secert)).start();
+				new Thread(new ServerThread(client, resources,secert, this.server)).start();
 			}
 			
 		} catch (Exception e) {
