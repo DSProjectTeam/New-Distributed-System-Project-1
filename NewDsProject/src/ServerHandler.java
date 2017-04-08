@@ -318,6 +318,7 @@ public class ServerHandler {
 									MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 									serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
 								}
+								serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
 							}
 						}
 					} while (hasMacthResource = false);
