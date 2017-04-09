@@ -3,6 +3,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class EZshareServer {
 	static ServerSocket server;
@@ -31,6 +33,12 @@ public class EZshareServer {
 			this.resources = new HashMap<String, Resource>();
 			this.serverList = new ArrayList<String>();
 			
+			Timer timer = new Timer();
+			long delay1 = 1000*60*10; //10mins
+			long delay2 = 1000*60*10; //10mins
+			
+			/**every 10 mins, contact a randomly selected server in the server list*/
+			//timer.schedule(task, delay1,delay2);
 			
 			
 			while(true){

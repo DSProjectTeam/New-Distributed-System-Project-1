@@ -7,6 +7,8 @@ import java.util.regex.Pattern;
 import javax.swing.OverlayLayout;
 
 import org.json.simple.*;
+import org.json.simple.JSONObject;
+
 public class ServerHandler {
 	
 	public Queue<String> clientQueue;
@@ -201,6 +203,9 @@ public class ServerHandler {
 							}else{
 								/**same primary key*/
 								resources.remove(resource.URI);
+								
+								/*resource.file=new resourceFile(resource.URI);*/
+								
 								resources.put(resource.URI, resource);
 								response = "success";
 								success = true;
@@ -210,6 +215,7 @@ public class ServerHandler {
 							}
 						}else{
 							/**valid URI*/
+							/*resource.file=new resourceFile(resource.URI);*/
 							resources.put(resource.URI,resource);
 							
 							//need a share mechanism!!
@@ -224,6 +230,8 @@ public class ServerHandler {
 	return serverResponse;
 	}
 	
+	
+	/**relay暂时还没有实现*/
 	public synchronized static JSONObject handlingQuery(String name_query,String[] tags_query,
 			String description_query, String uri_query,String channel_query, 
 			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket){
@@ -255,13 +263,13 @@ public class ServerHandler {
 				Pattern.matches(invalidString, owner_query)||invalidTag;
 		
 		while(serverResponse==null){
-			if(invalidResourceValue||owner_query =="*"){
+			if(invalidResourceValue||owner_query.equals("*")){
 				errorMessage = "invalid resourceTemplate";
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
-				if(!uri_query.equals("")&&Pattern.matches(uri_query, filePathPattern)){
+				if(!uri_query.equals("") || !Pattern.matches(uri_query, filePathPattern)){
 					errorMessage = "missing resourceTemplate";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
@@ -312,7 +320,14 @@ public class ServerHandler {
 									MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
 									MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
 									MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);
-									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
+									
+									/**if owner not "", replace it with * */
+									if(resouce.owner.equals("")){
+										MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
+									}else{
+										MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "*");
+									}
+									
 									Integer ezport = serverSocket.getLocalPort();
 									String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
 									MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
@@ -326,76 +341,95 @@ public class ServerHandler {
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-			}
-		}
-		
-		/*while(relay = true){
-			*//**遍历装有resource对象的Hashmap resources*//*
-			for(Resource resource : resources.values()){
-				
-				*//**tagIncluded等于true如果所有template标签包含在候选资源的tags中*//*
-				boolean tagIncluded = false;
-				int tagCount = 0;
-				int tagLength = tags_query.length;
-				for(int i = 0; i<tags_query.length; i++){
-					if(resource.tag.contains(tags_query[i])){
-						tagCount++;
-					}
-				}
-				if(tagCount>=tagLength){
-					tagIncluded = true;
-				}
-				
-				*//**owner or URI not ""*//*
-				if((channel_query.equals(resource.channel) && (!owner_query.equals("") && owner_query.equals(resource.owner)) && 
-						uri_query.equals(resource.URI) && tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
-								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-								(name_query.equals("")&&description_query.equals("")))) || 
-						*//**owner or URI could be "" *//*
-						(channel_query.equals(resource.channel))&& tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
-										(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-										(name_query.equals("")&&description_query.equals("")))){
-				
-					Resource matchResource = resources.get(uri_query);
-					
-					*//**将符合要求的资源放在MatchResourceSet里*//*
-					matchResourceSet.add(matchResource);
 				}
 			}
-			
-			success = true;
-			response = "success";
-			serverResponse.put(ConstantEnum.CommandType.response.name(), response);
-			for(Resource resouce: matchResourceSet){
-				JSONObject MatchResouce = new JSONObject();
-				MatchResouce.put(ConstantEnum.CommandArgument.name.name(), resouce.name);
-				MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), resouce.tag);
-				MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
-				MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
-				MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);
-				MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
-				Integer ezport = serverSocket.getLocalPort();
-				String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
-				MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-				serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
-			}
-		}
-		*/
 		}
 		return serverResponse;
 	}
 	
-	public synchronized static JSONObject handlingFetch(String name,String[] tags,
+	public synchronized static FetchResult handlingFetch(String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket){
 		ArrayList<Resource> matchResourceSet = new ArrayList<Resource>();
+		String errorMessage;
+		String response;
+		JSONObject serverResponse = new JSONObject();
+		FetchResult fetchResult = new FetchResult();
+		
+		/**Regexp for filePath*/
+		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		/**Regexp for invalid resource contains whitespace or /o */
+		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
+		
+		/**invalid resource contains whitespace or \o */
+		boolean invalidTag = true;
+		for(String str: tags){
+			if(Pattern.matches(invalidString, str)){
+				invalidTag = false;
+			}
+		}
+		
+		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
+				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
+				Pattern.matches(invalidString, owner)||invalidTag;
+		
+		while(serverResponse==null){
+			if(invalidResourceValue || owner.equals("*")){
+				errorMessage = "invalid resourceTemplate";
+				response = "error";
+				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+				fetchResult = new FetchResult(serverResponse);
+			}else{
+				if(!uri.equals("") || !Pattern.matches(uri, filePathPattern)){
+					errorMessage = "missing resourceTemplate";
+					response = "error";
+					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+					fetchResult = new FetchResult(serverResponse);
+				}else{
+					boolean hasMacthResource = false;
+					hasMacthResource = resources.containsKey("uri");
+					if (hasMacthResource) {
+						response = "success";
+						serverResponse.put(ConstantEnum.CommandType.response.name(), response);
+						JSONObject MatchResource = new JSONObject();
+						JSONObject matchResource = new JSONObject();
+						
+						/**nested resource as a jsonobject*/
+						
+						matchResource.put(ConstantEnum.CommandArgument.name.name(), resources.get(uri).name);
+						matchResource.put(ConstantEnum.CommandArgument.tags.name(), resources.get(uri).tag);
+						matchResource.put(ConstantEnum.CommandArgument.description.name(), resources.get(uri).description);
+						matchResource.put(ConstantEnum.CommandArgument.uri.name(), resources.get(uri).URI);
+						matchResource.put(ConstantEnum.CommandArgument.channel.name(),resources.get(uri).channel);
+						matchResource.put(ConstantEnum.CommandArgument.owner.name(), resources.get(uri).name);
+						Integer ezport = serverSocket.getLocalPort();
+						String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+						matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
+						/**length of the match file*/
+						int resourceSize = (int) resources.get(uri).file.file.length();
+						matchResource.put(ConstantEnum.CommandArgument.resourceSize.name(),resourceSize);
+						
+						serverResponse.put(ConstantEnum.CommandType.resource.name(), matchResource);
+						fetchResult = new FetchResult(resources.get(uri), serverResponse);
+						
+					}else{
+						errorMessage = "invalid resourceTemplate";
+						response = "error";
+						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+						fetchResult = new FetchResult(serverResponse);
+					}
+					
+				}
+			}
 		
 		
-		return null;
+		
+		}
+		return fetchResult;
 	}
-	
-	
-	
 	
 	
 

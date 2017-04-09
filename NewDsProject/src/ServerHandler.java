@@ -13,7 +13,9 @@ public class ServerHandler {
 	
 	public Queue<String> clientQueue;
 	
-	public synchronized static JSONObject handlingPublish(Resource resource,HashMap<String, Resource> resources){
+	public synchronized static JSONObject handlingPublish(String name,String[] tags,
+			String description, String uri,String channel, 
+			String owner,HashMap<String, Resource> resources){
 		String errorMessage;
 		String response;
 		Boolean success = false;	
@@ -28,41 +30,42 @@ public class ServerHandler {
 		
 		/**invalid resource contains whitespace or /o */
 		boolean invalidTag = true;
-		for(String str: resource.tag){
+		for(String str: tags){
 			if(Pattern.matches(invalidString, str)){
 				invalidTag = false;
 			}
 		}
-		boolean invalidResourceValue = Pattern.matches(invalidString, resource.name)||Pattern.matches(invalidString, resource.channel)||
-				Pattern.matches(invalidString, resource.description)||Pattern.matches(invalidString, resource.URI)||
-				Pattern.matches(invalidString, resource.owner)||invalidTag;
+		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
+				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
+				Pattern.matches(invalidString, owner)||invalidTag;
 		while(serverResponse==null){
-			if (invalidResourceValue||resource.owner=="*") {
+			if (invalidResourceValue|| owner=="*") {
 				errorMessage = "invalid resource";
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
 				/**resource field not given or uri is not file scheme*/
-				if(resource.URI==""||Pattern.matches(filePathPattern, resource.URI)){
+				if(uri==""||Pattern.matches(filePathPattern, uri)){
 					errorMessage = "missing resource";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 					
 				}else{
-					if(resources.containsKey(resource.URI)){
+					if(resources.containsKey(uri)){
 						/**same URI, same channel,different owner or owner contains * */
-						if(resources.get(resource.URI).channel==resource.channel&&resources.get(resource.URI).owner!=resource.owner){
+						if(resources.get(uri).channel.equals(channel) &&!resources.get(uri).owner.equals(owner)){
 							errorMessage = "cannot publish resource";
 							response="error";
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 						}else{
 							/**same primary key*/
-							if(resources.containsKey(resource.URI)&&resources.get(resource.URI).owner==resource.owner
-									&&resources.get(resource.URI).channel==resource.channel){
-								resources.remove(resource.URI);
+							if(resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)
+									&&resources.get(uri).channel.equals(channel)){
+								resources.remove(uri);
+								Resource resource = new Resource(name, tags, description, uri, channel, owner);
 								resources.put(resource.URI, resource);
 								response = "success";
 								success = true;
@@ -70,7 +73,8 @@ public class ServerHandler {
 							}
 					else{
 						/**valid URI*/
-						resources.put(resource.URI,resource);
+						Resource resource = new Resource(name, tags, description, uri, channel, owner);
+						resources.put(uri,resource);
 						response = "success";
 						success= true;
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);				
@@ -85,7 +89,9 @@ public class ServerHandler {
 		return serverResponse;
 	}
 	
-	public synchronized static JSONObject handlingRemove (Resource resource,HashMap<String, Resource> resources){
+	public synchronized static JSONObject handlingRemove (String name,String[] tags,
+			String description, String uri,String channel, 
+			String owner,HashMap<String, Resource> resources){
 		String errorMessage;
 		String response;
 		Boolean success = false;
@@ -98,14 +104,14 @@ public class ServerHandler {
 		
 		/**invalid resource contains whitespace or /o */
 		boolean invalidTag = true;
-		for(String str: resource.tag){
+		for(String str: tags){
 			if(Pattern.matches(invalidString, str)){
 				invalidTag = false;
 			}
 		}
-		boolean invalidResourceValue = Pattern.matches(invalidString, resource.name)||Pattern.matches(invalidString, resource.channel)||
-				Pattern.matches(invalidString, resource.description)||Pattern.matches(invalidString, resource.URI)||
-				Pattern.matches(invalidString, resource.owner)||invalidTag;
+		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
+				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
+				Pattern.matches(invalidString, owner)||invalidTag;
 		
 		while(serverResponse == null){
 			if (invalidResourceValue) {
@@ -115,7 +121,7 @@ public class ServerHandler {
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
 				/**resource field not given or uri is not file scheme*/
-				if(resource.URI==""||Pattern.matches(filePathPattern, resource.URI)){
+				if(uri.equals("") || Pattern.matches(filePathPattern, uri)){
 					errorMessage = "missing resource";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
@@ -124,10 +130,10 @@ public class ServerHandler {
 				}else{
 					
 					/**successful remove*/
-					if (resources.containsKey(resource.URI)&&resources.get(resource.URI).owner==resource.owner&&
-							resources.get(resource.URI).channel==resource.channel) {
+					if (resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)&&
+							resources.get(uri).channel.equals(channel)) {
 						response = "success";
-						resources.remove(resource.URI);
+						resources.remove(uri);
 						serverResponse.put(ConstantEnum.CommandType.response.name(), response);
 					}else{
 						
@@ -143,7 +149,9 @@ public class ServerHandler {
 		return serverResponse;	
 	}
 	
-	public synchronized static JSONObject HandlingShare (Resource resource, String ClientSecret, String ServerSecret, HashMap<String, Resource> resources){
+	public synchronized static JSONObject HandlingShare (String name,String[] tags,
+			String description, String uri,String channel, 
+			String owner, String ClientSecret, String ServerSecret, HashMap<String, Resource> resources){
 		String errorMessage;
 		String response;
 		Boolean success = false;	
@@ -158,18 +166,18 @@ public class ServerHandler {
 		
 		/**invalid resource contains whitespace or /o */
 		boolean invalidTag = true;
-		for(String str: resource.tag){
+		for(String str: tags){
 			if(Pattern.matches(invalidString, str)){
 				invalidTag = false;
 			}
 		}
-		boolean invalidResourceValue = Pattern.matches(invalidString, resource.name)||Pattern.matches(invalidString, resource.channel)||
-				Pattern.matches(invalidString, resource.description)||Pattern.matches(invalidString, resource.URI)||
-				Pattern.matches(invalidString, resource.owner)||invalidTag;
+		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
+				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
+				Pattern.matches(invalidString, owner)||invalidTag;
 		
 		/** resource or secret field was not given or not of the correct type*/
 		while(serverResponse==null){
-			if(ClientSecret==""||resource.URI==""||!Pattern.matches(filePathPattern, resource.URI)){
+			if(ClientSecret.equals("") || uri.equals("") || !Pattern.matches(filePathPattern, uri)){
 				response = "error";
 				errorMessage = "missing resource and\\/or secret";
 				serverResponse.put(ConstantEnum.CommandType.response.name(), response);
@@ -184,7 +192,7 @@ public class ServerHandler {
 					serverResponse.put(ConstantEnum.CommandType.response.name(), response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 				}else{
-					if (invalidResourceValue||resource.owner=="*") {
+					if (invalidResourceValue||owner.equals("*")) {
 						
 						/** resource contained incorrect information that could not be recovered from*/
 						errorMessage = "invalid resource";
@@ -192,20 +200,20 @@ public class ServerHandler {
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 					}else{
-						if(resources.containsKey(resource.URI)){
-							/**same URI, same channel,different owner or owner contains * */
-							if(resources.get(resource.URI).owner!=resource.owner
-									&&resources.get(resource.URI).channel==resource.channel){
+						if(resources.containsKey(uri)){
+							/**same URI, same channel,different owner */
+							if(!resources.get(uri).owner.equals(owner)
+									&&resources.get(uri).channel.equals(channel)){
 								errorMessage = "cannot publish resource";
 								response="error";
 								serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 								serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 							}else{
 								/**same primary key*/
-								resources.remove(resource.URI);
+								resources.remove(uri);
 								
-								/*resource.file=new resourceFile(resource.URI);*/
 								
+								Resource resource = new Resource(name, tags, description, uri, channel, owner);
 								resources.put(resource.URI, resource);
 								response = "success";
 								success = true;
@@ -215,9 +223,10 @@ public class ServerHandler {
 							}
 						}else{
 							/**valid URI*/
-							/*resource.file=new resourceFile(resource.URI);*/
-							resources.put(resource.URI,resource);
 							
+							Resource resource = new Resource(name, tags, description, uri, channel, owner);
+							resources.put(resource.URI,resource);
+					
 							//need a share mechanism!!
 							response = "success";
 							success= true;
@@ -285,9 +294,12 @@ public class ServerHandler {
 							boolean tagIncluded = false;
 							int tagCount = 0;
 							int tagLength = tags_query.length;
+							
 							for(int i = 0; i<tags_query.length; i++){
-								if(resource.tag.contains(tags_query[i])){
-									tagCount++;
+								for(int j = 0; j<resource.tag.length; j++){
+									if(tags_query[i].equals(resource.tag[j])){
+										tagCount++;
+									}
 								}
 							}
 							if(tagCount>=tagLength){
@@ -425,11 +437,10 @@ public class ServerHandler {
 				}
 			}
 		
-		
-		
 		}
 		return fetchResult;
 	}
+	
 	
 	
 

@@ -19,7 +19,9 @@ import org.json.JSONArray;
 public class Client {
 	public static String ip = "localhost";
 	public static String ip2 = "192.168.1.110";
+	public static String ip3 = "sunrise.cis.unimelb.edu.au";
 	public static int port = 3000;
+	public static int port2 = 3780;
 	public static String commandType;
 	
 	
@@ -29,7 +31,7 @@ public class Client {
 	 */
 	public static void main(String[] args){
 		try {
-			Socket socket = new Socket(ip2,port);
+			Socket socket = new Socket(ip3,port2);
 			//inputStream
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			//outputSteam

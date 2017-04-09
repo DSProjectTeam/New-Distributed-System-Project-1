@@ -4,8 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -50,7 +48,7 @@ public class ServerThread extends Thread{
 				try {
 					clientSocket.close();
 				} catch (IOException e2) {
-					// TODO: handle exception
+					
 				}
 			}
 		}
@@ -92,8 +90,11 @@ public class ServerThread extends Thread{
 				//EZserver is not here!
 				
 				/**get response with the publish command*/
-				sendResponse = ServerHandler.handlingPublish(new Resource(name, tag, 
-						description, uri, channel, owner),this.resources);
+				
+				/*sendResponse = ServerHandler.handlingPublish(new Resource(name, tag, 
+						description, uri, channel, owner),this.resources);*/
+				
+				sendResponse = ServerHandler.handlingPublish(name,tags,description,uri,channel,owner,this.resources);
 				sendMessage(sendResponse);
 				
 				break;
@@ -110,8 +111,11 @@ public class ServerThread extends Thread{
 				//EZserver is not here!
 				
 				/**get response with the remove command*/
-				sendResponse = ServerHandler.handlingRemove(new Resource(name_remove, tag_remove, description_remove, 
-						uri_remove, channel_remove, owner_remove),this.resources);
+				/*sendResponse = ServerHandler.handlingRemove(new Resource(name_remove, tag_remove, description_remove, 
+						uri_remove, channel_remove, owner_remove),this.resources);*/
+				sendResponse = ServerHandler.handlingRemove(name_remove,tags_remove,description_remove,uri_remove,channel_remove,owner_remove,this.resources);
+				
+				
 				sendMessage(sendResponse);
 				
 				break;
@@ -129,8 +133,11 @@ public class ServerThread extends Thread{
 				//EZserver is not here!
 				
 				/**get response with the share command*/
-				sendResponse = ServerHandler.HandlingShare(new Resource(name_share, tag_share, description_share, uri_share, channel_share, owner_share),
-						secret_share,this.secret,this.resources);
+				/*sendResponse = ServerHandler.HandlingShare(new Resource(name_share, tag_share, description_share, uri_share, channel_share, owner_share),
+						secret_share,this.secret,this.resources);*/
+				
+				sendResponse = ServerHandler.HandlingShare(name_share, tags_share, description_share, uri_share, 
+						channel_share, owner_share, secret_share,this.secret,this.resources);
 				sendMessage(sendResponse);
 				break;
 			case fetch:
