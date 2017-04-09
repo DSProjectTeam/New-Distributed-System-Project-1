@@ -18,10 +18,8 @@ import org.json.JSONArray;
  */
 public class Client {
 	public static String ip = "localhost";
-	public static String ip2 = "192.168.1.110";
-	public static String ip3 = "sunrise.cis.unimelb.edu.au";
-	public static int port = 3000;
-	public static int port2 = 3780;
+	public static String ip2 = "sunrise.cis.unimelb.edu.au";
+	public static int port = 3780;
 	public static String commandType;
 	
 	
@@ -31,7 +29,7 @@ public class Client {
 	 */
 	public static void main(String[] args){
 		try {
-			Socket socket = new Socket(ip3,port2);
+			Socket socket = new Socket(ip2,port);
 			//inputStream
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			//outputSteam
@@ -178,30 +176,30 @@ public class Client {
 	    if(cmd.hasOption("command")){//switch?
 	        command = cmd.getOptionValue("command");
 	        switch (command){
-	        case "-publish":	userinputTemp.put(ConstantEnum.CommandType.publish.name(),command);
-	        					//command is a String
-	    						userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
-	    						//resource is a JSONObject
-	    						break;
-	        case "-remove":	userinputTemp.put(ConstantEnum.CommandType.remove.name(),command);
-							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
-							break;
-	        case "-share":	userinputTemp.put(ConstantEnum.CommandType.share.name(),command);
-							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource);
-							userinputTemp.put(ConstantEnum.CommandArgument.secret.name(),secret); 
-							break;
-	        case "-query":	userinputTemp.put(ConstantEnum.CommandType.query.name(),command);
-	        					userinputTemp.put(ConstantEnum.CommandArgument.relay.name(),relay); 
-							userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
-							//resource & rsourceTemplate are with different names but in same format, so 1 JSONObject 'resource' is used as their format
-							break;
-	        case "-fetch":	userinputTemp.put(ConstantEnum.CommandType.fetch.name(),command);
-	        					userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
-	        					break;
-	        case "-exchange":	userinputTemp.put(ConstantEnum.CommandType.exchange.name(),command);	
-	       						//serverArray已经在前面put过了，这里只普通put command就行了 
-	       						break;
-	        default: break;	
+	        case "-publish":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"PUBLISH");
+				//command is a String
+				userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
+				//resource is a JSONObject
+				break;
+	        case "-remove":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"REMOVE");
+				userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
+				break;
+	        case "-share":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"SHARE");
+				userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource);
+				userinputTemp.put(ConstantEnum.CommandArgument.secret.name(),secret); 
+				break;
+	        case "-query":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"QUERY");
+				userinputTemp.put(ConstantEnum.CommandArgument.relay.name(),relay); 
+				userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
+				//resource & rsourceTemplate are with different names but in same format, so 1 JSONObject 'resource' is used as their format
+				break;
+	        case "-fetch":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"FETCH");
+				userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
+				break;
+	        case "-exchange":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"EXCHANGE");	
+				//serverArray已经在前面put过了，这里只普通put command就行了 
+				break;
+default: break;	
 	        }
 	    }
 	    else {

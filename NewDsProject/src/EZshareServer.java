@@ -1,3 +1,4 @@
+import java.awt.image.AreaAveragingScaleFilter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -14,9 +15,24 @@ public class EZshareServer {
 	public static String secert = "12345678";
 	
 	public ArrayList<String> serverList;
+	
 	public EZshareServer(){};
 	
+	public EZshareServer(int serverPort) {
+		try {
+			this.server  = new ServerSocket(serverPort);
+			this.resources = new HashMap<String, Resource>();
+			this.serverList = new ArrayList<String>();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		
+	}
 	
+	public static void main(String[] args){
+		initializeServer(1000);
+	}
 	
 	protected void finalize() throws Throwable{
 		try {
@@ -27,11 +43,9 @@ public class EZshareServer {
 		}
 	}
 	
-	public void initializeServer(int serverPort){
+	public static void initializeServer(int serverPort){
 		try {
-			this.server  = new ServerSocket(serverPort);
-			this.resources = new HashMap<String, Resource>();
-			this.serverList = new ArrayList<String>();
+			EZshareServer eZshareServer = new EZshareServer(serverPort);
 			
 			Timer timer = new Timer();
 			long delay1 = 1000*60*10; //10mins
@@ -42,9 +56,9 @@ public class EZshareServer {
 			
 			
 			while(true){
-				Socket client = server.accept();
+				Socket client = EZshareServer.server.accept();
 				System.out.println("client applying for connection");
-				new Thread(new ServerThread(client, resources,secert, this.server, this.serverList)).start();
+				new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();
 			}
 			
 		} catch (Exception e) {
