@@ -29,24 +29,25 @@ public class ServerHandler {
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
 		/**invalid resource contains whitespace or /o */
-		boolean invalidTag = true;
+		boolean invalidTag = false;
 		for(String str: tags){
 			if(Pattern.matches(invalidString, str)){
-				invalidTag = false;
+				invalidTag = true;
 			}
 		}
+		System.out.println("command is oas");
 		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
 				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
 				Pattern.matches(invalidString, owner)||invalidTag;
-		while(serverResponse==null){
-			if (invalidResourceValue|| owner=="*") {
+		do{
+			if (invalidResourceValue|| owner.equals("*")) {
 				errorMessage = "invalid resource";
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
 				/**resource field not given or uri is not file scheme*/
-				if(uri==""||Pattern.matches(filePathPattern, uri)){
+				if(uri.equals("") || Pattern.matches(filePathPattern, uri)){
 					errorMessage = "missing resource";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
@@ -62,16 +63,15 @@ public class ServerHandler {
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 						}else{
 							/**same primary key*/
-							if(resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)
-									&&resources.get(uri).channel.equals(channel)){
+							
 								resources.remove(uri);
 								Resource resource = new Resource(name, tags, description, uri, channel, owner);
 								resources.put(resource.URI, resource);
 								response = "success";
 								success = true;
-								serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-							}
-					else{
+								serverResponse.put(ConstantEnum.CommandType.response.name(),response);	
+						}
+					}else{
 						/**valid URI*/
 						Resource resource = new Resource(name, tags, description, uri, channel, owner);
 						resources.put(uri,resource);
@@ -79,11 +79,9 @@ public class ServerHandler {
 						success= true;
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);				
 					}
-						}
-					}
 				}
 			}
-		}
+		}while(serverResponse==null);
 		
 		
 		return serverResponse;
@@ -271,7 +269,7 @@ public class ServerHandler {
 				Pattern.matches(invalidString, description_query)||Pattern.matches(invalidString, uri_query)||
 				Pattern.matches(invalidString, owner_query)||invalidTag;
 		
-		while(serverResponse==null){
+		do{
 			if(invalidResourceValue||owner_query.equals("*")){
 				errorMessage = "invalid resourceTemplate";
 				response = "error";
@@ -355,7 +353,7 @@ public class ServerHandler {
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 				}
 			}
-		}
+		}while(serverResponse==null);
 		return serverResponse;
 	}
 	

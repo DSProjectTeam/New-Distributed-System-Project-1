@@ -58,6 +58,7 @@ public class ServerThread extends Thread{
 	public void run() {
 		try {
 			String inputMessage = input.readUTF();
+			System.out.println("123");
 			handleCommand(inputMessage);
 			
 			
@@ -66,27 +67,41 @@ public class ServerThread extends Thread{
 		}
 	}
 	
-	public void handleCommand (String string){
+	public synchronized void handleCommand (String string){
 		JSONParser parser = new JSONParser();
 		JSONObject jsonObject;
 		JSONObject sendResponse;
 		try {
 			jsonObject = (JSONObject) parser.parse(string);
-			ConstantEnum.CommandType command  = ConstantEnum.CommandType.valueOf((String)jsonObject.get("command"));
+			/*ConstantEnum.CommandType command  = ConstantEnum.CommandType.valueOf((String)jsonObject.get("command"));*/
+			String command = (String) jsonObject.get(ConstantEnum.CommandType.command.name());
+			System.out.println("456");
 						switch (command) {
-			case debug:
+			case "DEBUG":
 				
 				break;
-			case publish:
+			case "PUBLISH":
 				/**取出嵌套在jsonObject中的resource字段（同样也是jsonObjecy）*/
 				JSONObject resource_publish = (JSONObject) jsonObject.get("resource");
-				String [] tags = (String[]) resource_publish.get(ConstantEnum.CommandArgument.tags.name());
+				System.out.println(resource_publish.toJSONString());
+				
+				String [] tags = resource_publish.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				ArrayList<String> tag = tagTolist(tags);
+				String name = resource_publish.get(ConstantEnum.CommandArgument.name.name()).toString();
+				System.out.println(name.length()+" "+name);
+				String description = resource_publish.get(ConstantEnum.CommandArgument.description.name()).toString();
+				String uri = resource_publish.get(ConstantEnum.CommandArgument.uri.name()).toString();
+				String channel = resource_publish.get(ConstantEnum.CommandArgument.channel.name()).toString();
+				String owner = resource_publish.get(ConstantEnum.CommandArgument.owner.name()).toString();
+				
+			/*	String [] tags = (String[]) resource_publish.get(ConstantEnum.CommandArgument.tags.name());
 				ArrayList<String> tag = tagTolist(tags);
 				String name = (String) resource_publish.get(ConstantEnum.CommandArgument.name.name());
+				System.out.println(name.length()+" "+name);
 				String description = (String) resource_publish.get(ConstantEnum.CommandArgument.description.name());
 				String uri = (String) resource_publish.get(ConstantEnum.CommandArgument.uri.name());
 				String channel = (String) resource_publish.get(ConstantEnum.CommandArgument.channel.name());
-				String owner = (String) resource_publish.get(ConstantEnum.CommandArgument.owner.name());
+				String owner = (String) resource_publish.get(ConstantEnum.CommandArgument.owner.name());*/
 				//EZserver is not here!
 				
 				/**get response with the publish command*/
@@ -98,7 +113,7 @@ public class ServerThread extends Thread{
 				sendMessage(sendResponse);
 				
 				break;
-			case remove:
+			case "REMOVE":
 				JSONObject resource_remove = (JSONObject) jsonObject.get("resource");
 				
 				String [] tags_remove = (String[]) resource_remove.get(ConstantEnum.CommandArgument.tags.name());
@@ -119,7 +134,7 @@ public class ServerThread extends Thread{
 				sendMessage(sendResponse);
 				
 				break;
-			case share:
+			case "SHARE":
 				JSONObject resource_share = (JSONObject) jsonObject.get("resource");
 				
 				String [] tags_share = (String[]) resource_share.get(ConstantEnum.CommandArgument.tags.name());
@@ -140,7 +155,7 @@ public class ServerThread extends Thread{
 						channel_share, owner_share, secret_share,this.secret,this.resources);
 				sendMessage(sendResponse);
 				break;
-			case fetch:
+			case "FETCH":
 				JSONObject fecthTemplate = (JSONObject) jsonObject.get("resourceTemplate");
 				
 				String [] tags_fetch = (String[]) fecthTemplate.get(ConstantEnum.CommandArgument.tags.name());
@@ -187,23 +202,23 @@ public class ServerThread extends Thread{
 				
 				
 				break;
-			case query:
+			case "QUERY":
 				JSONObject template_resource = (JSONObject)jsonObject.get("resourceTemplate");
 				
 				Boolean relay = (Boolean) template_resource.get(ConstantEnum.CommandArgument.relay.name());
-				String [] tags_query = (String[]) template_resource.get(ConstantEnum.CommandArgument.tags.name());
+				String [] tags_query = template_resource.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
 				ArrayList<String> tag_query = tagTolist(tags_query);
-				String name_query = (String) template_resource.get(ConstantEnum.CommandArgument.name.name());
-				String description_query = (String) template_resource.get(ConstantEnum.CommandArgument.description.name());
-				String uri_query = (String) template_resource.get(ConstantEnum.CommandArgument.uri.name());
-				String channel_query = (String) template_resource.get(ConstantEnum.CommandArgument.channel.name());
-				String owner_query = (String) template_resource.get(ConstantEnum.CommandArgument.owner.name());
+				String name_query = template_resource.get(ConstantEnum.CommandArgument.name.name()).toString();
+				String description_query = template_resource.get(ConstantEnum.CommandArgument.description.name()).toString();
+				String uri_query = template_resource.get(ConstantEnum.CommandArgument.uri.name()).toString();
+				String channel_query = template_resource.get(ConstantEnum.CommandArgument.channel.name()).toString();
+				String owner_query = template_resource.get(ConstantEnum.CommandArgument.owner.name()).toString();
 				
 				sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay,this.resources, this.serverSocket);
 				
 				sendMessage(sendResponse);
 				break;
-			case exchange:
+			case "EXCHANGE":
 					
 				break;
 			default:

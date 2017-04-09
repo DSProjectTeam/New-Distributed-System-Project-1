@@ -15,6 +15,8 @@ public class EZshareServer {
 	public static String secert = "12345678";
 	
 	public ArrayList<String> serverList;
+
+	private String secret;
 	
 	public EZshareServer(){};
 	
@@ -31,7 +33,7 @@ public class EZshareServer {
 	}
 	
 	public static void main(String[] args){
-		initializeServer(1000);
+		initializeServer(3780);
 	}
 	
 	protected void finalize() throws Throwable{
@@ -58,7 +60,8 @@ public class EZshareServer {
 			while(true){
 				Socket client = EZshareServer.server.accept();
 				System.out.println("client applying for connection");
-				new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();
+				new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server, eZshareServer.serverList).start();
+				/*new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();*/
 			}
 			
 		} catch (Exception e) {
