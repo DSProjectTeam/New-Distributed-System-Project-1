@@ -10,6 +10,8 @@ public class EZshareServer {
 	/**key of this hash map is the URI of a resource, value is resource*/
 	public HashMap<String, Resource> resources;
 	public static String secert = "12345678";
+	
+	public ArrayList<String> serverList;
 	public EZshareServer(){};
 	
 	
@@ -27,11 +29,14 @@ public class EZshareServer {
 		try {
 			this.server  = new ServerSocket(serverPort);
 			this.resources = new HashMap<String, Resource>();
+			this.serverList = new ArrayList<String>();
+			
+			
 			
 			while(true){
 				Socket client = server.accept();
 				System.out.println("client applying for connection");
-				new Thread(new ServerThread(client, resources,secert, this.server)).start();
+				new Thread(new ServerThread(client, resources,secert, this.server, this.serverList)).start();
 			}
 			
 		} catch (Exception e) {

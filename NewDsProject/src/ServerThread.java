@@ -1,10 +1,15 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -14,25 +19,32 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class ServerThread extends Thread{
+	
 	Socket clientSocket;
+	
 	private HashMap<String, Resource> resources;
 	
-	private BufferedReader input;
+	private DataInputStream input;
 	
-	private BufferedWriter output;
+	private DataOutputStream output;
 	
 	private String secret;
 	
 	public ServerSocket serverSocket;
 	
-	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket){
+	private ArrayList<String> serverList;
+	
+	public FetchResult fetchResult;
+	
+	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket, ArrayList<String> serverList){
 		try {
 			this.clientSocket = socket;
 			this.resources = resources;	
 			this.secret = secret;
-			this.output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF-8"));
-			this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF-8"));
+			this.output = new DataOutputStream(clientSocket.getOutputStream());
+			this.input = new DataInputStream(clientSocket.getInputStream());
 			this.serverSocket = serverSocket;
+			this.serverList = serverList;
 		} catch (IOException e) {
 			if(clientSocket!=null){
 				try {
@@ -47,7 +59,7 @@ public class ServerThread extends Thread{
 	@Override
 	public void run() {
 		try {
-			String inputMessage = input.readLine();
+			String inputMessage = input.readUTF();
 			handleCommand(inputMessage);
 			
 			
@@ -122,6 +134,50 @@ public class ServerThread extends Thread{
 				sendMessage(sendResponse);
 				break;
 			case fetch:
+				JSONObject fecthTemplate = (JSONObject) jsonObject.get("resourceTemplate");
+				
+				String [] tags_fetch = (String[]) fecthTemplate.get(ConstantEnum.CommandArgument.tags.name());
+				ArrayList<String> tag_fetch = tagTolist(tags_fetch);
+				String name_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.name.name());
+				String description_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.description.name());
+				String uri_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.uri.name());
+				String channel_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.channel.name());
+				String owner_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.owner.name());
+				
+				fetchResult = ServerHandler.handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, this.resources,this.serverSocket);
+				if(fetchResult.resource == null){
+					try {
+						output.writeUTF(fetchResult.serverResponse.toJSONString());
+						output.flush();
+						System.out.println(Thread.currentThread().getName()+":sending response message!");
+					} catch (IOException e) {
+						e.printStackTrace();
+						System.err.println(Thread.currentThread().getName() + ":Error while sending");
+					}
+				}else{
+					try {
+						/**jsonobject of a match resource*/
+						output.writeUTF(fetchResult.serverResponse.toJSONString());
+						
+						/**convert file to the byte array for transmission*/
+						Path path = fetchResult.resource.file.file.toPath();
+						byte[] fileData = Files.readAllBytes(path);
+						output.write(fileData);
+						
+						/**put resource size in a jsonobject*/
+						JSONObject resourceSize = new JSONObject();
+						resourceSize.put(ConstantEnum.CommandArgument.resourceSize.name(), 1);
+						
+						output.writeUTF(resourceSize.toJSONString());
+						output.flush();
+						System.out.println(Thread.currentThread().getName()+":sending response message!");
+						
+					} catch (IOException e) {
+						System.err.println(Thread.currentThread().getName() + ":Error while sending");
+					}
+					
+				}
+				
 				
 				break;
 			case query:
@@ -156,7 +212,7 @@ public class ServerThread extends Thread{
 	/**send response message from the server*/
 	public synchronized void sendMessage(JSONObject message){
 		try {
-			output.write(message.toJSONString());
+			output.writeUTF(message.toJSONString());
 			output.flush();
 			System.out.println(Thread.currentThread().getName()+":sending response message!");
 			

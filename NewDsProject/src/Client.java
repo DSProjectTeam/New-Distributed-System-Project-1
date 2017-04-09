@@ -178,14 +178,14 @@ public class Client {
 	        switch (command){
 	        case "-publish":	userinputTemp.put(ConstantEnum.CommandType.publish.name(),command);
 	        					//command is a String
-	    						userinputTemp.put(ConstantEnum.CommandArgument.resource.name(),resource); 
+	    						userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
 	    						//resource is a JSONObject
 	    						break;
 	        case "-remove":	userinputTemp.put(ConstantEnum.CommandType.remove.name(),command);
-							userinputTemp.put(ConstantEnum.CommandArgument.resource.name(),resource); 
+							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
 							break;
 	        case "-share":	userinputTemp.put(ConstantEnum.CommandType.share.name(),command);
-							userinputTemp.put(ConstantEnum.CommandArgument.resource.name(),resource);
+							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource);
 							userinputTemp.put(ConstantEnum.CommandArgument.secret.name(),secret); 
 							break;
 	        case "-query":	userinputTemp.put(ConstantEnum.CommandType.query.name(),command);

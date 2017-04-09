@@ -62,8 +62,4 @@ public class Resource {
 		this.channel = channel;
 	}
 	
-	
-	
-	
- 
 }
