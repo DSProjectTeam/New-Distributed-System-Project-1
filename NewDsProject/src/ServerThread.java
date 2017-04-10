@@ -116,15 +116,18 @@ public class ServerThread extends Thread{
 			case "REMOVE":
 				JSONObject resource_remove = (JSONObject) jsonObject.get("resource");
 				
-				String [] tags_remove = (String[]) resource_remove.get(ConstantEnum.CommandArgument.tags.name());
-				ArrayList<String> tag_remove = tagTolist(tags_remove);
-				String name_remove = (String) resource_remove.get(ConstantEnum.CommandArgument.name.name());
-				String description_remove = (String) resource_remove.get(ConstantEnum.CommandArgument.description.name());
-				String uri_remove = (String) resource_remove.get(ConstantEnum.CommandArgument.uri.name());
-				String channel_remove = (String) resource_remove.get(ConstantEnum.CommandArgument.channel.name());
-				String owner_remove = (String) resource_remove.get(ConstantEnum.CommandArgument.owner.name());
-				//EZserver is not here!
+				String [] tags_remove = resource_remove.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String name_remove = resource_remove.get(ConstantEnum.CommandArgument.name.name()).toString();
 				
+				String description_remove = resource_remove.get(ConstantEnum.CommandArgument.description.name()).toString();
+			
+				String uri_remove = resource_remove.get(ConstantEnum.CommandArgument.uri.name()).toString();
+				
+				String channel_remove = resource_remove.get(ConstantEnum.CommandArgument.channel.name()).toString();
+			
+				String owner_remove = resource_remove.get(ConstantEnum.CommandArgument.owner.name()).toString();
+				//EZserver is not here!
+			
 				/**get response with the remove command*/
 				/*sendResponse = ServerHandler.handlingRemove(new Resource(name_remove, tag_remove, description_remove, 
 						uri_remove, channel_remove, owner_remove),this.resources);*/
@@ -136,21 +139,25 @@ public class ServerThread extends Thread{
 				break;
 			case "SHARE":
 				JSONObject resource_share = (JSONObject) jsonObject.get("resource");
-				
-				String [] tags_share = (String[]) resource_share.get(ConstantEnum.CommandArgument.tags.name());
-				ArrayList<String> tag_share = tagTolist(tags_share);
-				String name_share = (String) resource_share.get(ConstantEnum.CommandArgument.name.name());
-				String description_share = (String) resource_share.get(ConstantEnum.CommandArgument.description.name());
-				String uri_share = (String) resource_share.get(ConstantEnum.CommandArgument.uri.name());
-				String channel_share = (String) resource_share.get(ConstantEnum.CommandArgument.channel.name());
-				String owner_share = (String) resource_share.get(ConstantEnum.CommandArgument.owner.name());
-				String secret_share = (String) resource_share.get(ConstantEnum.CommandArgument.secret.name());
+				System.out.println("sharing!");
+				String [] tags_share = resource_share.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				System.out.println("1");
+				String name_share = resource_share.get(ConstantEnum.CommandArgument.name.name()).toString();
+				System.out.println("2");
+				String description_share = resource_share.get(ConstantEnum.CommandArgument.description.name()).toString();
+				System.out.println("3");
+				String uri_share = resource_share.get(ConstantEnum.CommandArgument.uri.name()).toString();
+				System.out.println("4");
+				String channel_share = resource_share.get(ConstantEnum.CommandArgument.channel.name()).toString();
+				System.out.println("5");
+				String owner_share = resource_share.get(ConstantEnum.CommandArgument.owner.name()).toString();
+				System.out.println("6");
+				/*String secret_share = resource_share.get(ConstantEnum.CommandArgument.secret.name()).toString();*/
+				String secret_share = "12345678";
+				System.out.println("7");
 				//EZserver is not here!
 				
-				/**get response with the share command*/
-				/*sendResponse = ServerHandler.HandlingShare(new Resource(name_share, tag_share, description_share, uri_share, channel_share, owner_share),
-						secret_share,this.secret,this.resources);*/
-				
+				/**get response with the share command*/					
 				sendResponse = ServerHandler.HandlingShare(name_share, tags_share, description_share, uri_share, 
 						channel_share, owner_share, secret_share,this.secret,this.resources);
 				sendMessage(sendResponse);
@@ -213,7 +220,6 @@ public class ServerThread extends Thread{
 				String uri_query = template_resource.get(ConstantEnum.CommandArgument.uri.name()).toString();
 				String channel_query = template_resource.get(ConstantEnum.CommandArgument.channel.name()).toString();
 				String owner_query = template_resource.get(ConstantEnum.CommandArgument.owner.name()).toString();
-				
 				sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay,this.resources, this.serverSocket);
 				
 				sendMessage(sendResponse);
