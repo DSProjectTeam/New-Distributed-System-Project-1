@@ -298,7 +298,7 @@ public class ServerHandler {
 						int tagCount = 0;
 						int tagLength = tags_query.length;
 						
-						if(tags_query.equals("")){
+						if(tags_query.equals("")||resource.tag.equals("")){
 							tagIncluded = true;
 						}else{
 							for(int i = 0; i<tags_query.length; i++){
@@ -324,10 +324,17 @@ public class ServerHandler {
 							for(Map.Entry<String, Resource> x:resources.entrySet()){
 								allResource.add(x.getValue());
 							}
+							Integer size = 1;
+							serverResponse.put(ConstantEnum.CommandType.response, "success");
 							for(Resource resourceTemp: allResource){
+								
 								JSONObject MatchResouce = new JSONObject();
 								MatchResouce.put(ConstantEnum.CommandArgument.name.name(), resourceTemp.name);
-								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), resourceTemp.tag);
+								JSONArray tagsArray = new JSONArray();
+								for (String tag: resourceTemp.tag){
+									tagsArray.add(tag);
+								}
+								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);
 								MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resourceTemp.description);
 								MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resourceTemp.URI);
 								MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resourceTemp.channel);
@@ -340,11 +347,13 @@ public class ServerHandler {
 								}
 								
 								Integer ezport = serverSocket.getLocalPort();
-								String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-								serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
+								serverResponse.put("Resource"+size.toString(), MatchResouce);
+								
+								size++;
 							}
-							serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
+							serverResponse.put(ConstantEnum.CommandType.resultSize, allResource.size());
 							hasMacthResource = true;
 						}else{
 							errorMessage = "no resource in store";
@@ -356,24 +365,43 @@ public class ServerHandler {
 					}else{
 						for(Resource resource : resources.values()){
 							
-							/**owner or URI not ""*/
-							if((channel_query.equals(resource.channel) && (!owner_query.equals("") && owner_query.equals(resource.owner)) && 
-									(!uri_query.equals("")&&uri_query.equals(resource.URI)) && tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
+							/**owner or URI not ""*/ 
+							//&& tagIncluded
+							//channel is working
+							//caution: tags name
+							//String a = (b ==null) ? true : false ;
+						
+						boolean ownerMatch = (channel_query.equals("")) ? true: channel_query.equals(resource.channel);
+						boolean uriMatch = (uri_query.equals("")) ?  true : uri_query.equals(resource.URI) ;
+						
+						//&& tagIncluded
+								
+						if((channel_query.equals(resource.channel)  && ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
+								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
+								(name_query.equals("")&&description_query.equals(""))))){
+							System.out.println("match");
+							/**将符合要求的资源放在MatchResourceSet里*/
+							matchResourceSet.add(resource);
+						}
+						
+							/*
+							if((channel_query.equals(resource.channel)&& tagIncluded && (!owner_query.equals("") && owner_query.equals(resource.owner)) && 
+									(!uri_query.equals("")&&uri_query.equals(resource.URI))  && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
 											(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 											(name_query.equals("")&&description_query.equals("")))) || 
-									/**owner or URI could be "" */
-									((channel_query.equals(resource.channel))&& tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
+									*//**owner or URI could be "" *//*
+									((channel_query.equals(resource.channel)) && tagIncluded&& ( (!name_query.equals("") && name_query.equals(resource.name))|| 
 													(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 													(name_query.equals("")&&description_query.equals(""))))
 									){
 							
 								Resource matchResource = resource;
 								
-								/*hasMacthResource = true;*/
-								
-								/**将符合要求的资源放在MatchResourceSet里*/
-								matchResourceSet.add(matchResource);
-							}
+								hasMacthResource = true;
+								System.out.println("match");
+								*//**将符合要求的资源放在MatchResourceSet里*//*
+								matchResourceSet.add(resource);
+							}*/
 						}
 						if(!matchResourceSet.isEmpty()){
 							success = true;
@@ -382,11 +410,15 @@ public class ServerHandler {
 							for(Resource resouce: matchResourceSet){
 								JSONObject MatchResouce = new JSONObject();
 								MatchResouce.put(ConstantEnum.CommandArgument.name.name(), resouce.name);
-								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), resouce.tag);
+								JSONArray tagsArray = new JSONArray();
+								for (String tag: resouce.tag){
+									tagsArray.add(tag);
+								}
+								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);//------------------------------------------
 								MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
 								MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
 								MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);
-								
+								System.out.println("233");
 								/**if owner not "", replace it with * */
 								if(resouce.owner.equals("")){
 									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
@@ -395,7 +427,8 @@ public class ServerHandler {
 								}
 								
 								Integer ezport = serverSocket.getLocalPort();
-								String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+	
+								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 								serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
 							}
@@ -427,6 +460,8 @@ public class ServerHandler {
 		String errorMessage;
 		String response;
 		JSONObject serverResponse = new JSONObject();
+		
+		/**a fetchResult store the server response and file data if fetch template is matched*/
 		FetchResult fetchResult = new FetchResult();
 		
 		/**Regexp for filePath*/
