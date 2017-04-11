@@ -538,6 +538,32 @@ public class ServerHandler {
 		return fetchResult;
 	}
 	
+	public synchronized static JSONObject handlingExchange(ArrayList<String> serverList, ArrayList<String>serverList_exchange, 
+			ArrayList<String> hostnameList_exchange, ArrayList<String> portList_exchange){
+			JSONObject serverResponse = new JSONObject();
+			String response;
+			String errorMessage;
+			String hostnamePattern = "((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)";
+			String portPattern = "^([0-5]?\\d?\\d?\\d?\\d|6[0-4]\\d\\d\\d|65[0-4]\\d\\d|655[0-2]\\d|6553[0-5])$";
+			for(int i=0; i<serverList_exchange.size(); i++){
+				if(!(Pattern.matches(hostnamePattern,hostnameList_exchange.get(i))
+						&&Pattern.matches(portPattern, portList_exchange.get(i)))){//doesn't fits rexp
+					response="error";
+					errorMessage = "missing resourceTemplate";	
+					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+					return serverResponse;
+				}
+				else if (!serverList.contains(serverList_exchange.get(i))){
+					serverList.add(serverList_exchange.get(i));
+				}
+			}
+			response="success";
+			serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+			return serverResponse;
+			
+		}
+	
 	
 	
 

@@ -6,6 +6,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.concurrent.ScheduledExecutorService;
+import org.json.simple.*;
+import java.util.Random;
+import java.io.DataOutputStream;
+
 
 public class EZshareServer {
 	static ServerSocket server;
@@ -53,8 +57,11 @@ public class EZshareServer {
 			long delay1 = 1000*60*10; //10mins
 			long delay2 = 1000*60*10; //10mins
 			
+			ExchangeTask task = new ExchangeTask(eZshareServer);
+			
 			/**every 10 mins, contact a randomly selected server in the server list*/
-			//timer.schedule(task, delay1,delay2);
+			
+			timer.schedule(task, delay1,delay2);
 			
 			
 			while(true){
@@ -70,6 +77,8 @@ public class EZshareServer {
 		}
 		
 	}
+	
+	
 	
 	
 	

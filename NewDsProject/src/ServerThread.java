@@ -15,6 +15,7 @@ import java.util.HashMap;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.json.simple.JSONArray;
 
 public class ServerThread extends Thread{
 	
@@ -227,7 +228,21 @@ public class ServerThread extends Thread{
 				sendMessage(sendResponse);
 				break;
 			case "EXCHANGE":
-					
+				JSONArray serverListJSONArray = (JSONArray) jsonObject.get("serverList");// need to deal with "serverList" missing	!
+				ArrayList<String> serverList_exchange = new ArrayList<>();
+				ArrayList<String> hostnameList_exchange = new ArrayList<>();
+				ArrayList<String> portList_exchange = new ArrayList<>();
+				for(/*JSONObject serversJSONObject:serverListJSONArray*/int i=0; i<serverListJSONArray.size(); i++){
+					JSONObject serverJSONObject = (JSONObject)serverListJSONArray.get(i);
+					String hostname = serverJSONObject.get("hostname").toString();
+					String port = serverJSONObject.get("port").toString();
+					String hostnameAndPort = hostname+":"+port;
+					hostnameList_exchange.add(hostname);
+					portList_exchange.add(port);
+					serverList_exchange.add(hostnameAndPort);
+				}
+				sendResponse = ServerHandler.handlingExchange(serverList, serverList_exchange, hostnameList_exchange, portList_exchange);
+				sendMessage(sendResponse);
 				break;
 			default:
 				break;
