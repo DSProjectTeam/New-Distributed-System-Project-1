@@ -141,19 +141,13 @@ public class ServerThread extends Thread{
 				JSONObject resource_share = (JSONObject) jsonObject.get("resource");
 				System.out.println("sharing!");
 				String [] tags_share = resource_share.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
-				System.out.println("1");
 				String name_share = resource_share.get(ConstantEnum.CommandArgument.name.name()).toString();
-				System.out.println("2");
 				String description_share = resource_share.get(ConstantEnum.CommandArgument.description.name()).toString();
-				System.out.println("3");
 				String uri_share = resource_share.get(ConstantEnum.CommandArgument.uri.name()).toString();
-				System.out.println("4");
 				String channel_share = resource_share.get(ConstantEnum.CommandArgument.channel.name()).toString();
-				System.out.println("5");
 				String owner_share = resource_share.get(ConstantEnum.CommandArgument.owner.name()).toString();
-				System.out.println("6");
-				/*String secret_share = resource_share.get(ConstantEnum.CommandArgument.secret.name()).toString();*/
-				String secret_share = "12345678";
+				String secret_share = jsonObject.get(ConstantEnum.CommandArgument.secret.name()).toString();
+				
 				System.out.println("7");
 				//EZserver is not here!
 				
@@ -211,16 +205,24 @@ public class ServerThread extends Thread{
 				break;
 			case "QUERY":
 				JSONObject template_resource = (JSONObject)jsonObject.get("resourceTemplate");
+				boolean relay1;
 				
-				Boolean relay = (Boolean) template_resource.get(ConstantEnum.CommandArgument.relay.name());
 				String [] tags_query = template_resource.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
-				ArrayList<String> tag_query = tagTolist(tags_query);
 				String name_query = template_resource.get(ConstantEnum.CommandArgument.name.name()).toString();
 				String description_query = template_resource.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri_query = template_resource.get(ConstantEnum.CommandArgument.uri.name()).toString();
+				System.out.println("555");
 				String channel_query = template_resource.get(ConstantEnum.CommandArgument.channel.name()).toString();
 				String owner_query = template_resource.get(ConstantEnum.CommandArgument.owner.name()).toString();
-				sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay,this.resources, this.serverSocket);
+				System.out.println("555");
+				String relay = jsonObject.get(ConstantEnum.CommandArgument.relay.name()).toString();
+				if(relay.equals("")){
+					relay1 = true;
+				}else{
+					relay1 = false;
+				}
+				
+				sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
 				
 				sendMessage(sendResponse);
 				break;
