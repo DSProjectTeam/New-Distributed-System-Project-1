@@ -1,6 +1,7 @@
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.regex.Pattern;
 
@@ -272,6 +273,8 @@ public class ServerHandler {
 				Pattern.matches(invalidString, description_query)||Pattern.matches(invalidString, uri_query)||
 				Pattern.matches(invalidString, owner_query)||invalidTag;
 		System.out.println("querying");
+		
+		boolean hasMacthResource = false;
 		do{
 			if(invalidResourceValue||owner_query.equals("*")){
 				errorMessage = "invalid resourceTemplate";
@@ -279,48 +282,90 @@ public class ServerHandler {
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
-				if(uri_query.equals("") || Pattern.matches(uri_query, filePathPattern)){
+				/*if(uri_query.equals("") || Pattern.matches(uri_query, filePathPattern)){
 					errorMessage = "missing resourceTemplate";
 					response = "error";
 					System.out.println("aaa");
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-				}else{					
+				}else*/	
 					
-					boolean hasMacthResource = false;
 					
-						for(Resource resource : resources.values()){
-							
-							/**tagIncluded等于true如果所有template标签包含在候选资源的tags中*/
-							boolean tagIncluded = false;
-							int tagCount = 0;
-							int tagLength = tags_query.length;
-							
-							if(tags_query.equals("")){
-								tagIncluded = true;
-							}else{
-								for(int i = 0; i<tags_query.length; i++){
-									for(int j = 0; j<resource.tag.length; j++){
-										if(tags_query[i].equals(resource.tag[j])){
-											tagCount++;
-										}
+					boolean tagIncluded = false;
+					for(Resource resource : resources.values()){
+						/**tagIncluded等于true如果所有template标签包含在候选资源的tags中*/
+						
+						int tagCount = 0;
+						int tagLength = tags_query.length;
+						
+						if(tags_query.equals("")){
+							tagIncluded = true;
+						}else{
+							for(int i = 0; i<tags_query.length; i++){
+								for(int j = 0; j<resource.tag.length; j++){
+									if(tags_query[i].equals(resource.tag[j])){
+										tagCount++;
 									}
 								}
-								if(tagCount>=tagLength){
-									tagIncluded = true;
-								}
 							}
-							
+							if(tagCount>=tagLength){
+								tagIncluded = true;
+							}
+						}
+					}
+					
+					
+					
+					/** for query like -query with no parameter*/
+					if(channel_query.equals("")&& owner_query.equals("") && uri_query.equals("") && name_query.equals("")
+							&& description_query.equals("")){
+						ArrayList<Resource> allResource = new ArrayList<Resource>();
+						if(!resources.isEmpty()){
+							for(Map.Entry<String, Resource> x:resources.entrySet()){
+								allResource.add(x.getValue());
+							}
+							for(Resource resourceTemp: allResource){
+								JSONObject MatchResouce = new JSONObject();
+								MatchResouce.put(ConstantEnum.CommandArgument.name.name(), resourceTemp.name);
+								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), resourceTemp.tag);
+								MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resourceTemp.description);
+								MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resourceTemp.URI);
+								MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resourceTemp.channel);
+								
+								/**if owner not "", replace it with * */
+								if(resourceTemp.owner.equals("")){
+									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resourceTemp.name);
+								}else{
+									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "*");
+								}
+								
+								Integer ezport = serverSocket.getLocalPort();
+								String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
+								serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
+							}
+							serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
+							hasMacthResource = true;
+						}else{
+							errorMessage = "no resource in store";
+							response = "error";
+							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+						}
+						
+					}else{
+						for(Resource resource : resources.values()){
 							
 							/**owner or URI not ""*/
 							if((channel_query.equals(resource.channel) && (!owner_query.equals("") && owner_query.equals(resource.owner)) && 
-									uri_query.equals(resource.URI) && tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
+									(!uri_query.equals("")&&uri_query.equals(resource.URI)) && tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
 											(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 											(name_query.equals("")&&description_query.equals("")))) || 
 									/**owner or URI could be "" */
 									((channel_query.equals(resource.channel))&& tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
 													(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-													(name_query.equals("")&&description_query.equals(""))))){
+													(name_query.equals("")&&description_query.equals(""))))
+									){
 							
 								Resource matchResource = resource;
 								
@@ -363,81 +408,13 @@ public class ServerHandler {
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 						}
-					} 
+						
+					}
 					
-					/*do {
-						*//**遍历装有resource对象的Hashmap resources*//*
-						for(Resource resource : resources.values()){
-							
-							*//**tagIncluded等于true如果所有template标签包含在候选资源的tags中*//*
-							boolean tagIncluded = false;
-							int tagCount = 0;
-							int tagLength = tags_query.length;
-							
-							for(int i = 0; i<tags_query.length; i++){
-								for(int j = 0; j<resource.tag.length; j++){
-									if(tags_query[i].equals(resource.tag[j])){
-										tagCount++;
-									}
-								}
-							}
-							if(tagCount>=tagLength){
-								tagIncluded = true;
-							}
-							
-							*//**owner or URI not ""*//*
-							if((channel_query.equals(resource.channel) && (!owner_query.equals("") && owner_query.equals(resource.owner)) && 
-									uri_query.equals(resource.URI) && tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
-											(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-											(name_query.equals("")&&description_query.equals("")))) || 
-									*//**owner or URI could be "" *//*
-									(channel_query.equals(resource.channel))&& tagIncluded && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
-													(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-													(name_query.equals("")&&description_query.equals("")))){
-							
-								Resource matchResource = resource;
-								
-								hasMacthResource = true;
-								
-								*//**将符合要求的资源放在MatchResourceSet里*//*
-								matchResourceSet.add(matchResource);
-								success = true;
-								response = "success";
-								serverResponse.put(ConstantEnum.CommandType.response.name(), response);
-								for(Resource resouce: matchResourceSet){
-									JSONObject MatchResouce = new JSONObject();
-									MatchResouce.put(ConstantEnum.CommandArgument.name.name(), resouce.name);
-									MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), resouce.tag);
-									MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
-									MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
-									MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);
-									
-									*//**if owner not "", replace it with * *//*
-									if(resouce.owner.equals("")){
-										MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
-									}else{
-										MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "*");
-									}
-									
-									Integer ezport = serverSocket.getLocalPort();
-									String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
-									MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-									serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
-								}
-								serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
-							}else{
-								errorMessage = "invalid resourceTemplate";
-								response = "error";
-								serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-								serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-							}
-						}
-					} while (hasMacthResource == false);*/
-					/*errorMessage = "invalid resourceTemplate";
-					response = "error";
-					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);*/
-				}
+						
+				} 
+					
+				
 			
 		}while(serverResponse==null);
 		return serverResponse;
