@@ -46,6 +46,7 @@ public class Client {
 				if(in.available()>0){
 					String responseMessage = in.readUTF();
 					handleServerResponse(responseMessage);
+					
 				}
 			}	
 		} catch (IOException e) {
