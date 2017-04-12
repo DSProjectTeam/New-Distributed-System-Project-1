@@ -9,6 +9,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+//import org.json.simple.JSONArray;
 import org.json.JSONArray;
 
 /**
@@ -19,6 +20,7 @@ import org.json.JSONArray;
 public class Client {
 	public static String ip = "localhost";
 	public static String ip2 = "sunrise.cis.unimelb.edu.au";
+	public static String ip3 = "10.12.154.169";
 	public static int port = 3780;
 	public static String commandType;
 	
@@ -29,15 +31,16 @@ public class Client {
 	 */
 	public static void main(String[] args){
 		try {
-			Socket socket = new Socket(ip2,port);
+			Socket socket = new Socket(ip3,port);
 			//inputStream
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			//outputSteam
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			commandType = "";
 			JSONObject userInput = handleClientInput(args);
-			out.writeUTF(userInput.toJSONString());//(userInput+"\n")
+			out.writeUTF(userInput.toJSONString());
 			out.flush();
+			System.out.println("command sent to server: "+userInput.toJSONString());
 			
 			while(true){//当返回多个包时，in.available始终大于0，接受多个包，在此期间String commandType值不变
 				if(in.available()>0){
@@ -67,8 +70,7 @@ public class Client {
 	    		
 	    		args = new String [args.length+1];
 	    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
-	    		
-	    		System.out.println(args.length+""+argsWithCommand.length);// just for test
+	    		//System.out.println(args.length+""+argsWithCommand.length);// just for test
 		}
 	 	
 		String command = "";
@@ -88,13 +90,13 @@ public class Client {
 	    options.addOption("name",true,"input name");
 	    options.addOption("tags",true,"input tags");
 	    options.addOption("description",true, "input description");
-	    options.addOption("uri",true, "input ");
-	    options.addOption("channel",true, "input ");
-	    options.addOption("owner",true, "input ");
-	    options.addOption("ezserver",true, "input ");
-	    options.addOption("secret",true, "input ");
-	    options.addOption("relay",true, "input ");
-	    options.addOption("servers",true, "input ");//-debug command has not been handled.
+	    options.addOption("uri",true, "input uri");
+	    options.addOption("channel",true, "input channel");
+	    options.addOption("owner",true, "input owner");
+	    options.addOption("ezserver",true, "input ezserver");
+	    options.addOption("secret",true, "input secret");
+	    options.addOption("relay",true, "input relay");
+	    options.addOption("servers",true, "input servers");//-debug command has not been handled.
 	    
 	    CommandLineParser parser = new DefaultParser();
 	    CommandLine cmd = null;
@@ -149,27 +151,24 @@ public class Client {
 	    
 	    if(cmd.hasOption("secret")){//it seems it's only used in SHARE
 	       secret = cmd.getOptionValue("secret");
-	   }
-	   userinputTemp.put(ConstantEnum.CommandArgument.secret.name(),secret);	  
+	   }  
 	       
 	    if(cmd.hasOption("relay")){
 	       relay = cmd.getOptionValue("relay");
-	   }
-	   userinputTemp.put(ConstantEnum.CommandArgument.relay.name(),relay);	   
+	   }   
 	       
 	    if(cmd.hasOption("servers")){
 	       serversAll = cmd.getOptionValue("servers");
-	       String[] servers = serversAll.split(",");
-	       JSONObject[] serverArray = new JSONObject[servers.length];
-	       for (int i=0; i<servers.length; i++){
+	       String[] serversArray = serversAll.split(",");
+	       JSONArray serversJSONArray = new JSONArray();
+	       for (int i=0; i<serversArray.length; i++){
 	    	   		JSONObject temp = new JSONObject();
-	    	   		String[] hostAndPort = servers[i].split(":");
-	    	   		temp.put("hostname", hostAndPort[0]);
-	    	   		temp.put("port", hostAndPort[1]);  
-	    	   		serverArray[i] = temp;
+	    	   		String[] hostnameAndPort = serversArray[i].split(":");
+	    	   		temp.put("hostname", hostnameAndPort[0]);
+	    	   		temp.put("port", hostnameAndPort[1]);  
+	    	   		serversJSONArray.put(temp);
 	       }
-	       //Those servers are recorded in the format of an Array.Array of JSON Objects.
-	       userinputTemp.put(ConstantEnum.CommandArgument.serverList.name(),serverArray);
+	       userinputTemp.put(ConstantEnum.CommandArgument.serverList.name(),serversJSONArray);   
 	   }
 	   
 	    
@@ -177,42 +176,41 @@ public class Client {
 	        command = cmd.getOptionValue("command");
 	        switch (command){
 	        case "-publish":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"PUBLISH");
-				//command is a String
-				userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
-				//resource is a JSONObject
-				break;
+	        					//command is a String
+	    						userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
+	    						//resource is a JSONObject
+	    						break;
 	        case "-remove":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"REMOVE");
-				userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
-				break;
-	        case "-share":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"SHARE");
-				userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource);
-				userinputTemp.put(ConstantEnum.CommandArgument.secret.name(),secret); 
-				break;
+							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
+							break;
+	        case "-share":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"SHARE"); 
+							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource);
+							userinputTemp.put(ConstantEnum.CommandArgument.secret.name(),secret);
+							break;
 	        case "-query":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"QUERY");
-				userinputTemp.put(ConstantEnum.CommandArgument.relay.name(),relay); 
-				userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
-				//resource & rsourceTemplate are with different names but in same format, so 1 JSONObject 'resource' is used as their format
-				break;
+	        				userinputTemp.put(ConstantEnum.CommandArgument.relay.name(),relay); 
+							userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
+							//resource & rsourceTemplate are with different names but in same format, so 1 JSONObject 'resource' is used as their format
+							break;
 	        case "-fetch":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"FETCH");
-				userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
-				break;
+	        					userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
+	        					break;
 	        case "-exchange":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"EXCHANGE");	
-				//serverArray已经在前面put过了，这里只普通put command就行了 
-				break;
-default: break;	
+	       						//serverArray已经在前面put过了，这里只普通put command就行了 
+	       						break;
+	        default: break;	
 	        }
 	    }
 	    else {
 	    		command ="";
-	    		userinputTemp.put("command", "");//!!why ConstantEnum.commandType.***.name()??why not "command" directly
-	    }
+	    		userinputTemp.put(ConstantEnum.CommandType.command.name(), "");//more to be handled.
+	    }    
 			return userinputTemp;
-		}
+	}
 	
 	
 	
-	
-	
+
 	/**
 	 * print out the response.
 	 * @param input
@@ -225,18 +223,18 @@ default: break;
 			serverResponse = (JSONObject)parser.parse(input);
 			//String response =  (String)serverResponse.get(ConstantEnum.CommandType.response.name());
 			//use the command type recorded when reading user's input
-			switch (commandType){//How to print out properly?
+			switch (commandType){//How to print out resource properly?
 			case "-publish":
 			case "-remove":
 			case "-share":
 			case "-exchange":
-				System.out.println(serverResponse.toJSONString());
+				System.out.println("response received from server: "+serverResponse.toJSONString());
 				break;
 			case "-query":
-				System.out.println(serverResponse.toJSONString());
+				System.out.println("response received from server: "+serverResponse.toJSONString());
 				break;
 			case "-fetch":
-				System.out.println(serverResponse.toJSONString());
+				System.out.println("response received from server: "+serverResponse.toJSONString());
 				break;
 			default: break;//How to deal with default?	
 			}
@@ -246,3 +244,4 @@ default: break;
 		}
 	}
 }
+
