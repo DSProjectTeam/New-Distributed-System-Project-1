@@ -353,12 +353,12 @@ public class ServerHandler {
 						
 						boolean tagIncluded;
 						System.out.println("!!!"+tags_query[0]);
-						if(tags_query[0].matches("\\[\"\"\\]")){
+						if(tags_query[0].matches("\\[\\]")){
 							tagIncluded = true;
 							System.out.println("---------");
 						}else{
 							
-							if(!resource.tag[0].matches("\\[\"\"\\]")){
+							if(!resource.tag[0].matches("\\[\\]")){
 								int tagLength = tags_query.length;
 								int aaa=resource.tag.length;
 								int tagCount  = 0;
