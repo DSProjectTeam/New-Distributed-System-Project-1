@@ -123,7 +123,12 @@ public class Client {
 	       //Array<String> -> List -> JSONArray -> JSONObject
 	       resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(tags)));
 	   }
-	    else resource.put(ConstantEnum.CommandArgument.tags.name(), "");
+	    else {
+	    	String [] empty= new String[1];
+	    	empty[0] = "";
+	    	resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(empty)));
+	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), "");
+	    }
 	   	
 	    if(cmd.hasOption("description")){
 	       description = cmd.getOptionValue("description");
