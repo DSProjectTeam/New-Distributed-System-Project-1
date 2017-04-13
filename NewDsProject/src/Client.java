@@ -31,7 +31,7 @@ public class Client {
 	 */
 	public static void main(String[] args){
 		try {
-			Socket socket = new Socket(ip3,port);
+			Socket socket = new Socket(ip,port);
 			//inputStream
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			//outputSteam
@@ -46,6 +46,7 @@ public class Client {
 				if(in.available()>0){
 					String responseMessage = in.readUTF();
 					handleServerResponse(responseMessage);
+					
 				}
 			}	
 		} catch (IOException e) {

@@ -11,10 +11,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.xml.ws.Response;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import com.google.gson.JsonObject;
+
 import org.json.simple.JSONArray;
 
 public class ServerThread extends Thread{
@@ -72,6 +76,8 @@ public class ServerThread extends Thread{
 		JSONParser parser = new JSONParser();
 		JSONObject jsonObject;
 		JSONObject sendResponse;
+		JSONObject localResponse;
+		ArrayList<JSONObject> otherResponse = new ArrayList<>();
 		try {
 			jsonObject = (JSONObject) parser.parse(string);
 			/*ConstantEnum.CommandType command  = ConstantEnum.CommandType.valueOf((String)jsonObject.get("command"));*/
@@ -94,21 +100,7 @@ public class ServerThread extends Thread{
 				String uri = resource_publish.get(ConstantEnum.CommandArgument.uri.name()).toString();
 				String channel = resource_publish.get(ConstantEnum.CommandArgument.channel.name()).toString();
 				String owner = resource_publish.get(ConstantEnum.CommandArgument.owner.name()).toString();
-				
-			/*	String [] tags = (String[]) resource_publish.get(ConstantEnum.CommandArgument.tags.name());
-				ArrayList<String> tag = tagTolist(tags);
-				String name = (String) resource_publish.get(ConstantEnum.CommandArgument.name.name());
-				System.out.println(name.length()+" "+name);
-				String description = (String) resource_publish.get(ConstantEnum.CommandArgument.description.name());
-				String uri = (String) resource_publish.get(ConstantEnum.CommandArgument.uri.name());
-				String channel = (String) resource_publish.get(ConstantEnum.CommandArgument.channel.name());
-				String owner = (String) resource_publish.get(ConstantEnum.CommandArgument.owner.name());*/
-				//EZserver is not here!
-				
-				/**get response with the publish command*/
-				
-				/*sendResponse = ServerHandler.handlingPublish(new Resource(name, tag, 
-						description, uri, channel, owner),this.resources);*/
+	
 				
 				sendResponse = ServerHandler.handlingPublish(name,tags,description,uri,channel,owner,this.resources);
 				sendMessage(sendResponse);
@@ -222,8 +214,15 @@ public class ServerThread extends Thread{
 				}else{
 					relay1 = false;
 				}
+				/*if(relay1==false){
+					sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+				}else{
+					localResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					otherResponse = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList);
+					sendResponse = handleRelay(otherResponse, localResponse);
+				}*/
+				sendResponse = sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
 				
-				sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
 				
 				sendMessage(sendResponse);
 				break;
@@ -273,6 +272,59 @@ public class ServerThread extends Thread{
 			}
 		return list;
 	}
+	
+	/*public synchronized JSONObject handleRelay(ArrayList<JSONObject> otherResponse,JSONObject localResponse){
+		*//**other server response error, return local response*//*
+		JSONObject response = new JSONObject();
+		if(otherResponse==null){
+			return localResponse;
+		}else{
+			*//**local query error, return other server's response*//*
+			if(localResponse.get(ConstantEnum.CommandType.response.name()).equals("error")){
+				
+				*//**other server error*//*
+				if(otherResponse.get(0).get("response").equals("error")){
+					return localResponse;
+					
+				*//**other server success*//*
+				}else{
+					response.put("response", "success");
+					*//**store every jsonobject(resource) from other server*//*
+					JSONObject resources = new JSONObject();
+					
+					int size=0;
+					Integer count = 1;
+					for(JSONObject jsonObject:otherResponse){
+						size =  size+Integer.parseInt(jsonObject.get("resultSize").toString());
+						response.put("resource"+count.toString(), jsonObject.get("resource"));
+						count++;
+					}
+					response.put("resultSize", size);
+					return response;					
+				}
+				
+			}else{
+				*//**local response success, other server response success, merge*//*
+				int localSize = Integer.parseInt(localResponse.get("resultSize").toString());
+				int otherSize = 0;
+				Integer count = 1;
+				response.put("response", "success");
+				for(JSONObject jsonObject:otherResponse){
+					otherSize =  otherSize+Integer.parseInt(jsonObject.get("resultSize").toString());
+					response.put("resource"+count.toString(), jsonObject.get("resource"));
+				}
+				response.put("resource", value)
+				
+				
+				JSONArray jsonArray = new JSONArray();
+				
+			}
+		}
+		
+		
+		return null;
+		
+	}*/
 	
 	
 	

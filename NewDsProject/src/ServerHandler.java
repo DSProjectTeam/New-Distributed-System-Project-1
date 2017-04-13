@@ -1,4 +1,9 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,7 +13,10 @@ import java.util.regex.Pattern;
 import javax.swing.OverlayLayout;
 
 import org.json.simple.*;
-import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class ServerHandler {
 	
@@ -238,8 +246,7 @@ public class ServerHandler {
 			}	
 		} while (serverResponse==null);
 		
-	return serverResponse;
-	}
+	return serverResponse;	}
 	
 	
 	/**relay暂时还没有实现*/
@@ -282,39 +289,9 @@ public class ServerHandler {
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
-				/*if(uri_query.equals("") || Pattern.matches(uri_query, filePathPattern)){
-					errorMessage = "missing resourceTemplate";
-					response = "error";
-					System.out.println("aaa");
-					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-				}else*/	
-					
-					
-					boolean tagIncluded = false;
-					for(Resource resource : resources.values()){
-						/**tagIncluded等于true如果所有template标签包含在候选资源的tags中*/
+				
+						//**tagIncluded等于true如果所有template标签包含在候选资源的tags中*//*
 						
-						int tagCount = 0;
-						int tagLength = tags_query.length;
-						
-						if(tags_query.equals("")||resource.tag.equals("")){
-							tagIncluded = true;
-						}else{
-							for(int i = 0; i<tags_query.length; i++){
-								for(int j = 0; j<resource.tag.length; j++){
-									if(tags_query[i].equals(resource.tag[j])){
-										tagCount++;
-									}
-								}
-							}
-							if(tagCount>=tagLength){
-								tagIncluded = true;
-							}
-						}
-					}
-					
-					
 					
 					/** for query like -query with no parameter*/
 					if(channel_query.equals("")&& owner_query.equals("") && uri_query.equals("") && name_query.equals("")
@@ -370,13 +347,67 @@ public class ServerHandler {
 							//channel is working
 							//caution: tags name
 							//String a = (b ==null) ? true : false ;
-						
-						boolean ownerMatch = (channel_query.equals("")) ? true: channel_query.equals(resource.channel);
+						boolean channelMatch = (channel_query.equals(""))? true : channel_query.equals(resource.channel);
+						boolean ownerMatch = (owner_query.equals("")) ? true: owner_query.equals(resource.owner);
 						boolean uriMatch = (uri_query.equals("")) ?  true : uri_query.equals(resource.URI) ;
+						
+						boolean tagIncluded;
+						System.out.println("!!!"+tags_query[0]);
+						if(tags_query[0].matches("\\[\"\"\\]")){
+							tagIncluded = true;
+							System.out.println("---------");
+						}else{
+							
+							if(!resource.tag[0].matches("\\[\"\"\\]")){
+								int tagLength = tags_query.length;
+								int aaa=resource.tag.length;
+								int tagCount  = 0;
+								
+								for(int i =0;i<tagLength;i++){
+									System.out.println(tags_query[i]);
+								}
+								
+								String[] tagInput = new String[tagLength];
+								for(int i =0;i<tagLength;i++){
+									tagInput[i] = tags_query[i].replaceAll("(\\[)|(\\])", "");
+								}
+								
+								String[] tagCandidate = new String[aaa];
+								
+								for(int i =0;i<aaa;i++){
+									
+									tagCandidate[i] = resource.tag[i].replaceAll("(\\[)|(\\])", "");
+								}
+								
+		
+								
+								for(int i = 0; i<tagLength; i++){
+									for(int j = 0; j<aaa; j++){
+										if(tagInput[i].equals(tagCandidate[j])){
+											System.out.println(tagInput[i]);
+											System.out.println(tagCandidate[i]);
+											tagCount++;
+										}
+									}
+								}
+								if (tagCount==tagLength) {
+									tagIncluded = true;
+								} else {
+									tagIncluded = false;
+								}
+							}else{
+								tagIncluded = true;
+							}
+							
+									
+								
+							
+						}
+						
 						
 						//&& tagIncluded
 								
-						if((channel_query.equals(resource.channel)  && ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
+						if((channelMatch&& tagIncluded&& ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
 								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 								(name_query.equals("")&&description_query.equals(""))))){
 							System.out.println("match");
@@ -384,26 +415,9 @@ public class ServerHandler {
 							matchResourceSet.add(resource);
 						}
 						
-							/*
-							if((channel_query.equals(resource.channel)&& tagIncluded && (!owner_query.equals("") && owner_query.equals(resource.owner)) && 
-									(!uri_query.equals("")&&uri_query.equals(resource.URI))  && ( (!name_query.equals("") && name_query.equals(resource.name))|| 
-											(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-											(name_query.equals("")&&description_query.equals("")))) || 
-									*//**owner or URI could be "" *//*
-									((channel_query.equals(resource.channel)) && tagIncluded&& ( (!name_query.equals("") && name_query.equals(resource.name))|| 
-													(!description_query.equals("") && resource.description.contains(channel_query) )|| 
-													(name_query.equals("")&&description_query.equals(""))))
-									){
-							
-								Resource matchResource = resource;
-								
-								hasMacthResource = true;
-								System.out.println("match");
-								*//**将符合要求的资源放在MatchResourceSet里*//*
-								matchResourceSet.add(resource);
-							}*/
 						}
 						if(!matchResourceSet.isEmpty()){
+							Integer size =1;
 							success = true;
 							response = "success";
 							serverResponse.put(ConstantEnum.CommandType.response.name(), response);
@@ -418,7 +432,7 @@ public class ServerHandler {
 								MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
 								MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
 								MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);
-								System.out.println("233");
+								
 								/**if owner not "", replace it with * */
 								if(resouce.owner.equals("")){
 									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
@@ -430,7 +444,8 @@ public class ServerHandler {
 	
 								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-								serverResponse.put(ConstantEnum.CommandType.resource.name(), MatchResouce);
+								serverResponse.put("Resource"+size.toString(), MatchResouce);
+								size++;
 							}
 							serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
 							hasMacthResource = true;
@@ -563,6 +578,103 @@ public class ServerHandler {
 			return serverResponse;
 			
 		}
+	
+	
+	/*public synchronized static ArrayList<JSONArray> handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, ServerSocket serverSocket, ArrayList<String> serverList){
+			JSONObject inputQuerry = new JSONObject();
+			
+			
+			*//**parse input query from the client*//*
+			try {
+				JSONParser parser = new JSONParser();
+				inputQuerry = (JSONObject) parser.parse(inputMessage);
+				
+			} catch (org.json.simple.parser.ParseException e) {
+				e.printStackTrace();
+			}
+			
+			*//**replace owner, channel with"" and set relay with true, then forward query*//*
+			inputQuerry.put("owner", "");
+			inputQuerry.put("channel", "");
+			inputQuerry.put("relay", false);
+			
+			
+			
+			*//**a list to store success information from other servers*//*
+			ArrayList<JSONArray> successOutcome = new ArrayList<>();
+			ArrayList<JSONArray> errorOutcome = new ArrayList<>();
+			
+				
+
+			if(!serverList.isEmpty()){
+					
+					
+				for(String server: serverList){
+					String[] hostAndPortTemp = server.split(":");
+					String tempIp = hostAndPortTemp[0];
+					Integer tempPort = Integer.parseInt(hostAndPortTemp[1]);
+						
+					try {
+						Socket otherServer = new Socket(tempIp, tempPort);
+						DataInputStream inputStream = new DataInputStream(otherServer.getInputStream());
+						DataOutputStream outputStream = new DataOutputStream(otherServer.getOutputStream());
+						outputStream.writeUTF(inputQuerry.toJSONString());
+						outputStream.flush();
+						System.out.println("query sent to other server");
+						
+						while(inputStream.available()>0){
+							String otherServerResponse = inputStream.readUTF();
+							JSONParser parser2 = new JSONParser();
+							JSONObject otherResponse = new JSONObject();
+							JSONArray  jsonArray = new JSONArray();
+							
+							
+							try {
+								otherResponse = (JSONObject)parser2.parse(otherServerResponse);
+								jsonArray = (JSONArray) parser2.parse(otherServerResponse);
+								String response = otherResponse.get("response").toString();
+								JSONObject temp = (JSONObject)jsonArray.get(0);
+								String response= temp.get("response").toString();
+								
+								switch (response) {
+								case "success":
+									successOutcome.add(jsonArray);
+									break;
+									
+								case "error" :
+									errorOutcome.add(jsonArray);
+									break;
+								default:
+									break;
+								}
+								
+							} catch (org.json.simple.parser.ParseException e) {
+								
+								e.printStackTrace();
+							}
+							
+						}
+							
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					
+					
+						
+						
+				}
+				if (successOutcome!=null) {
+					return successOutcome;
+				}else{
+					return errorOutcome;
+				}
+				
+			
+		
+			}
+	}*/
+	
+	
 	
 	
 	
