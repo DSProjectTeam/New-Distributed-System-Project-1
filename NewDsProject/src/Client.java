@@ -126,7 +126,9 @@ public class Client {
 	    else {
 	    	String [] empty= new String[1];
 	    	empty[0] = "";
-	    	resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(empty)));
+	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(empty)));
+	    	JSONArray emptyJSONArray = new JSONArray();
+	    	resource.put(ConstantEnum.CommandArgument.tags.name(), emptyJSONArray);
 	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), "");
 	    }
 	   	
