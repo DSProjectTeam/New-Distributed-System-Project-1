@@ -289,39 +289,9 @@ public class ServerHandler {
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
-				/*if(uri_query.equals("") || Pattern.matches(uri_query, filePathPattern)){
-					errorMessage = "missing resourceTemplate";
-					response = "error";
-					System.out.println("aaa");
-					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-				}else*/	
-					
-					
-					/*boolean tagIncluded = false;
-					for(Resource resource : resources.values()){
-						*//**tagIncluded等于true如果所有template标签包含在候选资源的tags中*//*
+				
+						//**tagIncluded等于true如果所有template标签包含在候选资源的tags中*//*
 						
-						int tagCount = 0;
-						int tagLength = tags_query.length;
-						
-						if(tags_query.equals("")||resource.tag.equals("")){
-							tagIncluded = true;
-						}else{
-							for(int i = 0; i<tags_query.length; i++){
-								for(int j = 0; j<resource.tag.length; j++){
-									if(tags_query[i].equals(resource.tag[j])){
-										tagCount++;
-									}
-								}
-							}
-							if(tagCount>=tagLength){
-								tagIncluded = true;
-							}
-						}
-					}*/
-					
-					
 					
 					/** for query like -query with no parameter*/
 					if(channel_query.equals("")&& owner_query.equals("") && uri_query.equals("") && name_query.equals("")
@@ -382,12 +352,13 @@ public class ServerHandler {
 						boolean uriMatch = (uri_query.equals("")) ?  true : uri_query.equals(resource.URI) ;
 						
 						boolean tagIncluded;
-						System.out.println("!!!"+channel_query.toString());
-						if(tags_query.equals("")){
+						System.out.println("!!!"+tags_query[0]);
+						if(tags_query[0].matches("\\[\"\"\\]")){
 							tagIncluded = true;
 							System.out.println("---------");
 						}else{
-							if(!resource.tag.equals("")){
+							
+							if(!resource.tag[0].matches("\\[\"\"\\]")){
 								int tagLength = tags_query.length;
 								int aaa=resource.tag.length;
 								int tagCount  = 0;
@@ -408,31 +379,7 @@ public class ServerHandler {
 									tagCandidate[i] = resource.tag[i].replaceAll("(\\[)|(\\])", "");
 								}
 								
-								
-								/*if(tagLength==1){
-									String[] temp0 = tags_query[0].split("[");
-									String[] temp00 = temp0[1].split("]");
-									tagInput[0] = temp00[1];
-									
-								}*/
-								
-								/*for(int i = 0;i<tagLength;i++){
-									if(i==0){
-										String[] temp1 =tags_query[i].split("[");
-										tagInput[i] = temp1[1];
-									}else if (i==tagLength-1) {
-										String[] temp2 =tags_query[i].split("]");
-										tagInput[i] = temp2[0];
-										
-									}else{
-										tagInput[i] = tags_query[i];
-									}
-									
-								}
-								
-								for(int i =0;i<aaa;i++){
-									
-								}*/
+		
 								
 								for(int i = 0; i<tagLength; i++){
 									for(int j = 0; j<aaa; j++){
