@@ -16,11 +16,11 @@ public class EZshareServer {
 	
 	/**key of this hash map is the URI of a resource, value is resource*/
 	public HashMap<String, Resource> resources;
-	public static String secert = "12345678";
+	public String secret = "12345678";
 	
 	public ArrayList<String> serverList;
 
-	private String secret;
+
 	
 	public EZshareServer(){};
 	

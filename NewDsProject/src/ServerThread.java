@@ -4,12 +4,15 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 import javax.xml.ws.Response;
 
@@ -17,6 +20,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.json.simple.JSONArray;
@@ -77,6 +81,7 @@ public class ServerThread extends Thread{
 		JSONObject jsonObject;
 		JSONObject sendResponse;
 		JSONObject localResponse;
+		JsonArray jsonArray;
 		ArrayList<JSONObject> otherResponse = new ArrayList<>();
 		try {
 			jsonObject = (JSONObject) parser.parse(string);
@@ -152,16 +157,16 @@ public class ServerThread extends Thread{
 			case "FETCH":
 				JSONObject fecthTemplate = (JSONObject) jsonObject.get("resourceTemplate");
 				
-				String [] tags_fetch = (String[]) fecthTemplate.get(ConstantEnum.CommandArgument.tags.name());
-				ArrayList<String> tag_fetch = tagTolist(tags_fetch);
+				String [] tags_fetch = (String[]) fecthTemplate.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
 				String name_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.name.name());
 				String description_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.description.name());
 				String uri_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.uri.name());
 				String channel_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.channel.name());
 				String owner_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.owner.name());
 				
-				fetchResult = ServerHandler.handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, this.resources,this.serverSocket);
-				if(fetchResult.resource == null){
+				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket);
+				
+				/*if(fetchResult.resource == null){
 					try {
 						output.writeUTF(fetchResult.serverResponse.toJSONString());
 						output.flush();
@@ -172,15 +177,15 @@ public class ServerThread extends Thread{
 					}
 				}else{
 					try {
-						/**jsonobject of a match resource*/
+						*//**jsonobject of a match resource*//*
 						output.writeUTF(fetchResult.serverResponse.toJSONString());
 						
-						/**convert file to the byte array for transmission*/
+						*//**convert file to the byte array for transmission*//*
 						Path path = fetchResult.resource.file.file.toPath();
 						byte[] fileData = Files.readAllBytes(path);
 						output.write(fileData);
 						
-						/**put resource size in a jsonobject*/
+						*//**put resource size in a jsonobject*//*
 						JSONObject resourceSize = new JSONObject();
 						resourceSize.put(ConstantEnum.CommandArgument.resourceSize.name(), 1);
 						
@@ -192,11 +197,12 @@ public class ServerThread extends Thread{
 						System.err.println(Thread.currentThread().getName() + ":Error while sending");
 					}
 					
-				}
+				}*/
 				
 				
 				break;
 			case "QUERY":
+				
 				JSONObject template_resource = (JSONObject)jsonObject.get("resourceTemplate");
 				boolean relay1;
 				
@@ -204,10 +210,8 @@ public class ServerThread extends Thread{
 				String name_query = template_resource.get(ConstantEnum.CommandArgument.name.name()).toString();
 				String description_query = template_resource.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri_query = template_resource.get(ConstantEnum.CommandArgument.uri.name()).toString();
-				System.out.println("555");
 				String channel_query = template_resource.get(ConstantEnum.CommandArgument.channel.name()).toString();
 				String owner_query = template_resource.get(ConstantEnum.CommandArgument.owner.name()).toString();
-				System.out.println("555");
 				String relay = jsonObject.get(ConstantEnum.CommandArgument.relay.name()).toString();
 				if(relay.equals("")){
 					relay1 = true;
@@ -221,10 +225,21 @@ public class ServerThread extends Thread{
 					otherResponse = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList);
 					sendResponse = handleRelay(otherResponse, localResponse);
 				}*/
-				sendResponse = sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+				QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
 				
+				if (queryReturn.hasMatch==false) {
+					sendMessage(queryReturn.reponseMessage);
+				}else{
+					try {
+						output.writeUTF(queryReturn.returnArray.toString());
+						output.flush();
+						System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						System.err.println(Thread.currentThread().getName() + ":Error while sending");
+					}
+				}
 				
-				sendMessage(sendResponse);
 				break;
 			case "EXCHANGE":
 				JSONArray serverListJSONArray = (JSONArray) jsonObject.get("serverList");// need to deal with "serverList" missing	!
@@ -271,6 +286,130 @@ public class ServerThread extends Thread{
 			list.add(string);
 			}
 		return list;
+	}
+	
+	public synchronized void handlingFetch(String name,String[] tags,
+			String description, String uri,String channel, 
+			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket){
+		String errorMessage;
+		String response;
+		JSONObject serverResponse = new JSONObject();
+		
+		/**a fetchResult store the server response and file data if fetch template is matched*/
+		FetchResult fetchResult = new FetchResult();
+		
+		/**Regexp for filePath*/
+		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		/**Regexp for invalid resource contains whitespace or /o */
+		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
+		
+		/**invalid resource contains whitespace or \o */
+		boolean invalidTag = false;
+		for(String str: tags){
+			if(Pattern.matches(invalidString, str)){
+				invalidTag = true;
+			}
+		}
+		
+		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
+				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
+				Pattern.matches(invalidString, owner)||invalidTag;
+		do {
+			if(invalidResourceValue || owner.equals("*")){
+				errorMessage = "invalid resourceTemplate";
+				response = "error";
+				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+				try {
+					this.output.writeUTF(serverResponse.toJSONString());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}else{
+				if(!uri.equals("") || !Pattern.matches(uri, filePathPattern)){
+					errorMessage = "missing resourceTemplate";
+					response = "error";
+					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+					try {
+						this.output.writeUTF(serverResponse.toJSONString());
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}else{
+					boolean hasMacthResource = false;
+					hasMacthResource = resources.get("uri").equals(uri)&&resources.get("channel").equals(channel);
+					
+					if (hasMacthResource) {
+						File file = new File(uri);
+						
+						if(file.exists()){
+							JSONObject matchResource = new JSONObject();
+							JSONArray jsonArray = new JSONArray();		
+							
+							response = "success";
+							serverResponse.put(ConstantEnum.CommandType.response.name(), response);
+						
+							jsonArray.add(serverResponse);
+							
+							matchResource.put(ConstantEnum.CommandArgument.name.name(), resources.get(uri).name);
+							matchResource.put(ConstantEnum.CommandArgument.tags.name(), resources.get(uri).tag);
+							matchResource.put(ConstantEnum.CommandArgument.description.name(), resources.get(uri).description);
+							matchResource.put(ConstantEnum.CommandArgument.uri.name(), resources.get(uri).URI);
+							matchResource.put(ConstantEnum.CommandArgument.channel.name(),resources.get(uri).channel);
+							
+							/**if owner not "", replace it with * */
+							if(resources.get(uri).owner.equals("")){
+								matchResource.put(ConstantEnum.CommandArgument.owner.name(), resources.get(uri).owner);
+							}else{
+								matchResource.put(ConstantEnum.CommandArgument.owner.name(), "*");
+							}
+							
+							Integer ezport = serverSocket.getLocalPort();
+							String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+							matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
+							matchResource.put(ConstantEnum.CommandArgument.resourceSize.name(), file.length());
+							
+							jsonArray.add(matchResource);
+							
+							try {
+								this.output.writeUTF(jsonArray.toJSONString());
+								
+								// start sending file
+								RandomAccessFile byteFile = new RandomAccessFile(file, "r");
+								byte[] sendingBuffer = new byte[1024*1024];
+								int num;
+								while((num = byteFile.read(sendingBuffer))>0){
+									System.out.println(num);
+									this.output.write(Arrays.copyOf(sendingBuffer, num));
+								}
+								byteFile.close();
+								
+								
+							} catch (IOException e) {
+								e.printStackTrace();
+							}		
+						}					
+					}else{
+						errorMessage = "invalid resourceTemplate";
+						response = "error";
+						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+						try {
+							this.output.writeUTF(serverResponse.toJSONString());
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					
+				}
+			}
+		
+		} while (serverResponse==null);
+
 	}
 	
 	/*public synchronized JSONObject handleRelay(ArrayList<JSONObject> otherResponse,JSONObject localResponse){

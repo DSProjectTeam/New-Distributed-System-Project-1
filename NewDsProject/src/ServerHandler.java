@@ -1,6 +1,8 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.ParseException;
@@ -15,6 +17,7 @@ import javax.swing.OverlayLayout;
 import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -33,7 +36,7 @@ public class ServerHandler {
 		JSONObject serverResponse = new JSONObject();
 		
 		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -105,7 +108,7 @@ public class ServerHandler {
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
 		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		String filePathPattern = "^(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -169,7 +172,8 @@ public class ServerHandler {
 		JSONObject serverResponse = new JSONObject();
 		
 		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
+		String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -193,8 +197,8 @@ public class ServerHandler {
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 
 			}else{
-				if(ClientSecret!=ServerSecret){
-					
+				if(!ClientSecret.equals(ServerSecret)){
+					System.out.println(ClientSecret+" "+ServerSecret);
 					/** secret was incorrect*/
 					response = "error";
 					errorMessage = "incorrect secret";
@@ -249,18 +253,18 @@ public class ServerHandler {
 	return serverResponse;	}
 	
 	
-	/**relay暂时还没有实现*/
-	public synchronized static JSONObject handlingQuery(String name_query,String[] tags_query,
+	public synchronized static QueryReturn handlingQuery(String name_query,String[] tags_query,
 			String description_query, String uri_query,String channel_query, 
 			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket){
 		/**用来存放满足template的resource*/
 		ArrayList<Resource> matchResourceSet = new ArrayList<Resource>();
 		String errorMessage;
 		String response;
-		int resultSize = 0;
-		Boolean success = false;	
+		org.json.JSONArray returnArray = new org.json.JSONArray();
+		JSONArray returnArray1 = new JSONArray();	
+		QueryReturn queryReturn;
 		JSONObject serverResponse = new JSONObject();
-		System.out.println("here we are");
+		
 
 		/**Regexp for filePath*/
 		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
@@ -288,6 +292,7 @@ public class ServerHandler {
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+				queryReturn = new QueryReturn(serverResponse);
 			}else{
 				
 						//**tagIncluded等于true如果所有template标签包含在候选资源的tags中*//*
@@ -298,11 +303,14 @@ public class ServerHandler {
 							&& description_query.equals("")){
 						ArrayList<Resource> allResource = new ArrayList<Resource>();
 						if(!resources.isEmpty()){
+							JSONObject returnSize = new JSONObject();
 							for(Map.Entry<String, Resource> x:resources.entrySet()){
 								allResource.add(x.getValue());
 							}
-							Integer size = 1;
+							
 							serverResponse.put(ConstantEnum.CommandType.response, "success");
+							/*returnArray.put(serverResponse);*/
+							returnArray1.add(serverResponse);
 							for(Resource resourceTemp: allResource){
 								
 								JSONObject MatchResouce = new JSONObject();
@@ -326,17 +334,22 @@ public class ServerHandler {
 								Integer ezport = serverSocket.getLocalPort();
 								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-								serverResponse.put("Resource"+size.toString(), MatchResouce);
-								
-								size++;
+								/*returnArray.put(MatchResouce);*/
+								returnArray1.add(MatchResouce);
 							}
-							serverResponse.put(ConstantEnum.CommandType.resultSize, allResource.size());
+							returnSize.put(ConstantEnum.CommandType.resultSize, allResource.size());
+							
+							/*returnArray.put(returnSize);*/
+							returnArray1.add(returnSize);
+							/*queryReturn = new QueryReturn(returnArray);*/
+							queryReturn = new QueryReturn(returnArray1);
 							hasMacthResource = true;
 						}else{
 							errorMessage = "no resource in store";
 							response = "error";
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+							queryReturn = new QueryReturn(serverResponse);
 						}
 						
 					}else{
@@ -418,12 +431,16 @@ public class ServerHandler {
 						
 						}
 						if(!matchResourceSet.isEmpty()){
-							Integer size =1;
-							success = true;
-							response = "success";
+							Integer size =1;							
+							response = "success";							
 							serverResponse.put(ConstantEnum.CommandType.response.name(), response);
+							
+							/*returnArray.put(serverResponse);*/
+							returnArray1.add(serverResponse);
+							JSONObject returnSize = new JSONObject();
 							for(Resource resouce: matchResourceSet){
 								JSONObject MatchResouce = new JSONObject();
+								
 								MatchResouce.put(ConstantEnum.CommandArgument.name.name(), resouce.name);
 								JSONArray tagsArray = new JSONArray();
 								for (String tag: resouce.tag){
@@ -436,7 +453,7 @@ public class ServerHandler {
 								
 								/**if owner not "", replace it with * */
 								if(resouce.owner.equals("")){
-									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.name);
+									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.owner);
 								}else{
 									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "*");
 								}
@@ -445,10 +462,19 @@ public class ServerHandler {
 	
 								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-								serverResponse.put("Resource"+size.toString(), MatchResouce);
-								size++;
+								/*returnArray.put(MatchResouce);*/
+								returnArray1.add(MatchResouce);
 							}
-							serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
+							//serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
+							
+							returnSize.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
+							
+							/*returnArray.put(returnSize);
+							queryReturn = new QueryReturn(returnArray);*/
+							
+							returnArray1.add(returnSize);
+							queryReturn = new QueryReturn(returnArray1);
+							
 							hasMacthResource = true;
 						}else{
 							errorMessage = "invalid resourceTemplate";
@@ -456,6 +482,7 @@ public class ServerHandler {
 							System.out.println("dididi");
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+							queryReturn = new QueryReturn(serverResponse);
 						}
 						
 					}
@@ -465,93 +492,8 @@ public class ServerHandler {
 					
 				
 			
-		}while(serverResponse==null);
-		return serverResponse;
-	}
-	
-	public synchronized static FetchResult handlingFetch(String name,String[] tags,
-			String description, String uri,String channel, 
-			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket){
-		ArrayList<Resource> matchResourceSet = new ArrayList<Resource>();
-		String errorMessage;
-		String response;
-		JSONObject serverResponse = new JSONObject();
-		
-		/**a fetchResult store the server response and file data if fetch template is matched*/
-		FetchResult fetchResult = new FetchResult();
-		
-		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
-		/**Regexp for invalid resource contains whitespace or /o */
-		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
-		
-		/**invalid resource contains whitespace or \o */
-		boolean invalidTag = false;
-		for(String str: tags){
-			if(Pattern.matches(invalidString, str)){
-				invalidTag = true;
-			}
-		}
-		
-		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
-				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
-				Pattern.matches(invalidString, owner)||invalidTag;
-		do {
-			if(invalidResourceValue || owner.equals("*")){
-				errorMessage = "invalid resourceTemplate";
-				response = "error";
-				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-				fetchResult = new FetchResult(serverResponse);
-			}else{
-				if(!uri.equals("") || !Pattern.matches(uri, filePathPattern)){
-					errorMessage = "missing resourceTemplate";
-					response = "error";
-					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-					fetchResult = new FetchResult(serverResponse);
-				}else{
-					boolean hasMacthResource = false;
-					hasMacthResource = resources.containsKey("uri");
-					if (hasMacthResource) {
-						response = "success";
-						serverResponse.put(ConstantEnum.CommandType.response.name(), response);
-						JSONObject MatchResource = new JSONObject();
-						JSONObject matchResource = new JSONObject();
-						
-						/**nested resource as a jsonobject*/
-						
-						matchResource.put(ConstantEnum.CommandArgument.name.name(), resources.get(uri).name);
-						matchResource.put(ConstantEnum.CommandArgument.tags.name(), resources.get(uri).tag);
-						matchResource.put(ConstantEnum.CommandArgument.description.name(), resources.get(uri).description);
-						matchResource.put(ConstantEnum.CommandArgument.uri.name(), resources.get(uri).URI);
-						matchResource.put(ConstantEnum.CommandArgument.channel.name(),resources.get(uri).channel);
-						matchResource.put(ConstantEnum.CommandArgument.owner.name(), resources.get(uri).name);
-						Integer ezport = serverSocket.getLocalPort();
-						String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
-						matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-						/**length of the match file*/
-						int resourceSize = (int) resources.get(uri).file.file.length();
-						matchResource.put(ConstantEnum.CommandArgument.resourceSize.name(),resourceSize);
-						
-						serverResponse.put(ConstantEnum.CommandType.resource.name(), matchResource);
-						fetchResult = new FetchResult(resources.get(uri), serverResponse);
-						
-					}else{
-						errorMessage = "invalid resourceTemplate";
-						response = "error";
-						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
-						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-						fetchResult = new FetchResult(serverResponse);
-					}
-					
-				}
-			}
-		
-		} while (serverResponse==null);
-		
-		
-		return fetchResult;
+		}while(queryReturn==null);
+		return queryReturn;
 	}
 	
 	public synchronized static JSONObject handlingExchange(ArrayList<String> serverList, ArrayList<String>serverList_exchange, 
