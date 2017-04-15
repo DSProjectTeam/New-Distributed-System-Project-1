@@ -1,7 +1,9 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -9,6 +11,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 //import org.json.simple.JSONArray;
 import org.json.JSONArray;
 
@@ -20,7 +23,7 @@ import org.json.JSONArray;
 public class Client {
 	public static String ip = "localhost";
 	public static String ip2 = "sunrise.cis.unimelb.edu.au";
-	public static String ip3 = "10.12.154.169";
+	public static String ip3 = "10.12.162.15";
 	public static int port = 3780;
 	public static String commandType;
 	
@@ -31,7 +34,7 @@ public class Client {
 	 */
 	public static void main(String[] args){
 		try {
-			Socket socket = new Socket(ip,port);
+			Socket socket = new Socket(ip2,port);
 			//inputStream
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			//outputSteam
@@ -45,7 +48,7 @@ public class Client {
 			while(true){//当返回多个包时，in.available始终大于0，接受多个包，在此期间String commandType值不变
 				if(in.available()>0){
 					String responseMessage = in.readUTF();
-					handleServerResponse(responseMessage);
+					handleServerResponse(responseMessage, in);
 					
 				}
 			}	
@@ -123,7 +126,14 @@ public class Client {
 	       //Array<String> -> List -> JSONArray -> JSONObject
 	       resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(tags)));
 	   }
-	    else resource.put(ConstantEnum.CommandArgument.tags.name(), "");
+	    else {
+//	    	String [] empty= new String[1];
+//	    	empty[0] = "";
+	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(empty)));
+	    	JSONArray emptyJSONArray = new JSONArray();
+	    	resource.put(ConstantEnum.CommandArgument.tags.name(), emptyJSONArray);
+	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), "");
+	    }
 	   	
 	    if(cmd.hasOption("description")){
 	       description = cmd.getOptionValue("description");
@@ -216,7 +226,7 @@ public class Client {
 	 * print out the response.
 	 * @param input
 	 */
-	public static void handleServerResponse(String input){
+	public static void handleServerResponse(String input, DataInputStream in){
 		JSONParser parser = new JSONParser();
 		JSONObject serverResponse;
 		
@@ -236,6 +246,7 @@ public class Client {
 				break;
 			case "-fetch":
 				System.out.println("response received from server: "+serverResponse.toJSONString());
+				handleDownload(serverResponse,in);
 				break;
 			default: break;//How to deal with default?	
 			}
@@ -244,5 +255,81 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
+	
+	
+
+	/**
+	 * This method handles the downloading part of the Fetch response.
+	 * @param serverResponse
+	 * @param in
+	 */
+	public static void handleDownload(JSONObject serverResponse, DataInputStream in) {
+			if(serverResponse.containsKey("resourceSize")){
+				try{
+					// The file location
+					String fileName = "/Users/zizheruan/OneDrive - The University of Melbourne/Distributed System/Project1/DownloadFiles/"+serverResponse.get("name");
+					
+					// Create a RandomAccessFile to read and write the output file.
+					RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");
+					
+					// Find out how much size is remaining to get from the server.
+					long fileSizeRemaining = (Long) serverResponse.get("resourceSize");
+					
+					int chunkSize = setChunkSize(fileSizeRemaining);
+					
+					// Represents the receiving buffer
+					byte[] receiveBuffer = new byte[chunkSize];
+					
+					// Variable used to read if there are remaining size left to read.
+					int num;
+					
+	//				System.out.println("Downloading "+fileName+" of size "+fileSizeRemaining);
+					while((num=in.read(receiveBuffer))>0){
+						// Write the received bytes into the RandomAccessFile
+						downloadingFile.write(Arrays.copyOf(receiveBuffer, num));
+						
+						// Reduce the file size left to read..
+						fileSizeRemaining-=num;
+						
+						// Set the chunkSize again
+						chunkSize = setChunkSize(fileSizeRemaining);
+						receiveBuffer = new byte[chunkSize];
+						
+						// If you're done then break
+						if(fileSizeRemaining==0){
+							break;
+					}
+				}
+	//			System.out.println("File received!");
+				downloadingFile.close();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				
+			}
+			
+		}
+	}
+	
+	
+	/**
+	 * This method set the chunk size in each downloading. It's for handleDownload method.
+	 * @param fileSizeRemaining
+	 * @return the appropriate chunk size of next downloading.
+	 */
+	public static int setChunkSize(long fileSizeRemaining){
+		// Determine the chunkSize
+		int chunkSize=1024*1024;
+		
+		// If the file size remaining is less than the chunk size
+		// then set the chunk size to be equal to the file size.
+		if(fileSizeRemaining<chunkSize){
+			chunkSize=(int) fileSizeRemaining;
+		}
+		return chunkSize;
+	}
+	
+	
+	
 }
 
