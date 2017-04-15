@@ -299,7 +299,8 @@ public class ServerThread extends Thread{
 		FetchResult fetchResult = new FetchResult();
 		
 		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
+		String filePathPattern = "\\w+\\/";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -327,7 +328,7 @@ public class ServerThread extends Thread{
 					e.printStackTrace();
 				}
 			}else{
-				if(!uri.equals("") || !Pattern.matches(uri, filePathPattern)){
+				if(uri.equals("") || !Pattern.matches(filePathPattern,uri)){
 					errorMessage = "missing resourceTemplate";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
@@ -340,19 +341,22 @@ public class ServerThread extends Thread{
 					}
 				}else{
 					boolean hasMacthResource = false;
-					hasMacthResource = resources.get("uri").equals(uri)&&resources.get("channel").equals(channel);
+					/*hasMacthResource = resources.get("uri").equals(uri)&&resources.get("channel").equals(channel);*/
+					hasMacthResource = resources.containsKey(uri)&&resources.get(uri).channel.equals(channel);
 					
 					if (hasMacthResource) {
-						File file = new File(uri);
+						String fileName = resources.get(uri).name;
+						File file = new File(uri+fileName);
 						
 						if(file.exists()){
+							System.out.println("file exists!");
 							JSONObject matchResource = new JSONObject();
 							JSONArray jsonArray = new JSONArray();		
 							
 							response = "success";
 							serverResponse.put(ConstantEnum.CommandType.response.name(), response);
-						
-							jsonArray.add(serverResponse);
+							
+							/*jsonArray.add(serverResponse);*/
 							
 							matchResource.put(ConstantEnum.CommandArgument.name.name(), resources.get(uri).name);
 							matchResource.put(ConstantEnum.CommandArgument.tags.name(), resources.get(uri).tag);
@@ -372,10 +376,12 @@ public class ServerThread extends Thread{
 							matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 							matchResource.put(ConstantEnum.CommandArgument.resourceSize.name(), file.length());
 							
-							jsonArray.add(matchResource);
+							/*jsonArray.add(matchResource);*/
 							
 							try {
-								this.output.writeUTF(jsonArray.toJSONString());
+								this.output.writeUTF(serverResponse.toJSONString());
+								this.output.writeUTF(matchResource.toJSONString());
+								
 								
 								// start sending file
 								RandomAccessFile byteFile = new RandomAccessFile(file, "r");
@@ -393,6 +399,7 @@ public class ServerThread extends Thread{
 							}		
 						}					
 					}else{
+						System.out.println("file do not exists");
 						errorMessage = "invalid resourceTemplate";
 						response = "error";
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
