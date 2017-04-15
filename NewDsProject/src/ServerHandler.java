@@ -352,6 +352,7 @@ public class ServerHandler {
 						boolean uriMatch = (uri_query.equals("")) ?  true : uri_query.equals(resource.URI) ;
 						
 						boolean tagIncluded;
+						
 						System.out.println("!!!"+tags_query[0]);
 						if(tags_query[0].matches("\\[\\]")){
 							tagIncluded = true;
