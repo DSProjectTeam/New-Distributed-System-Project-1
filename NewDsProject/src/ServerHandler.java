@@ -327,7 +327,7 @@ public class ServerHandler {
 								
 								/**if owner not "", replace it with * */
 								if(resourceTemp.owner.equals("")){
-									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resourceTemp.name);
+									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resourceTemp.owner);
 								}else{
 									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "*");
 								}
@@ -454,7 +454,7 @@ public class ServerHandler {
 								
 								/**if owner not "", replace it with * */
 								if(resouce.owner.equals("")){
-									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), resouce.owner);
+									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "");
 								}else{
 									MatchResouce.put(ConstantEnum.CommandArgument.owner.name(), "*");
 								}

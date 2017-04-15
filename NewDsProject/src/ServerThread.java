@@ -231,7 +231,12 @@ public class ServerThread extends Thread{
 					sendMessage(queryReturn.reponseMessage);
 				}else{
 					try {
-						output.writeUTF(queryReturn.returnArray.toString());
+						int length = queryReturn.returnArray.size();
+						for(int i=0;i<length;i++){
+							output.writeUTF(queryReturn.returnArray.get(i).toString());
+						}
+						
+						/*output.writeUTF(queryReturn.returnArray.toString());*/
 						output.flush();
 						System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
 					} catch (IOException e) {
