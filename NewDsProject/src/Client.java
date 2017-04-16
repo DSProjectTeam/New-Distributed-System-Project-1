@@ -18,7 +18,7 @@ import org.json.JSONArray;
 /**
  * This class is the only class for Client.
  * @author zizheruan
- *lllllllllllllllllllllll
+ *
  */
 public class Client {
 	public static String ip = "localhost";
