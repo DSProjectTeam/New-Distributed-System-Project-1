@@ -576,8 +576,9 @@ public class ServerHandler {
 							System.out.println("query sent to other server");
 							
 						/*测试了一下，好像每个包过来，available()从一个值变为0，然后下一个包过来，又从一个值变为0，断断续续的变化。*/
-							while(true){
-								if(inputStream.available()>0){
+							/*String otherServerResponse = null;
+							while(( otherServerResponse = inputStream.readUTF())!=null){
+								
 									System.out.println(inputStream.available());
 									String otherServerResponse = inputStream.readUTF();
 									JSONParser parser2 = new JSONParser();
@@ -589,13 +590,31 @@ public class ServerHandler {
 									
 									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
 									System.out.println(arrayList.size());
-								}
+									
+								
 								
 							}
+								*/	
+							while(true){
+								if(inputStream.available()>0){
+									String otherServerResponse = inputStream.readUTF();
+									JSONParser parser2 = new JSONParser();
 									
+									JSONObject otherResponse = new JSONObject();
+									otherResponse = (JSONObject)parser2.parse(otherServerResponse);
+									/*System.out.println(otherResponse.toJSONString());*/
+									JSONArray  jsonArray = new JSONArray();
+									
+									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
+									
+									if(otherResponse.containsKey("resultSize")||otherResponse.containsKey("errorMessage")){
+										break;
+									}
+								}
+							}System.out.println(arrayList.size());
 							   
-								/*if(arrayList.get(0).containsKey("response")){
-									if (arrayList.get(0).get("resposne").equals("success")) {
+								
+									if (arrayList.get(0).get("response").equals("success")) {
 										int size = arrayList.size();
 										for(int i =0; i<size;i++){
 											successOutcome.add(arrayList.get(i));
@@ -613,7 +632,7 @@ public class ServerHandler {
 										
 									}
 									
-								}*/	
+									
 								
 							
 											

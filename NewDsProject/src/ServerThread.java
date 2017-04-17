@@ -247,7 +247,7 @@ public class ServerThread extends Thread{
 	}
 	
 	public synchronized void handleRelay(QueryData otherResponse,QueryReturn localReturn){
-		
+		ArrayList<JSONObject> mergeList = new ArrayList<>();
 		//other servers no response or no match, return local query outcome
 		if(otherResponse == null||otherResponse.hasMatch==false){
 			System.out.println("----------------");
@@ -259,7 +259,7 @@ public class ServerThread extends Thread{
 					for(int i=0;i<length;i++){
 						output.writeUTF(localReturn.returnList.get(i).toString());
 					}
-					System.out.println("+++++++++++++");
+					
 					/*output.writeUTF(queryReturn.returnArray.toString());*/
 					output.flush();
 					System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
@@ -285,37 +285,39 @@ public class ServerThread extends Thread{
 			
 				//local and other both have match
 			}else{
-				ArrayList<JSONObject> arrayList = new ArrayList<>();
-				int otherListSize = otherResponse.outcome.size();
-				int otherQuerySize = Integer.parseInt(otherResponse.outcome.get(otherListSize-1).get("resultSize").toString());
-				int localListSize= localReturn.returnList.size();
-				int localQuerySize = Integer.parseInt(localReturn.returnList.get(localListSize-1).get("resultSize").toString());
-				int totalSize = otherQuerySize+localQuerySize;
-				JSONObject totalResponse = new JSONObject();
-				totalResponse.put("response", "success");
-				arrayList.add(totalResponse);
-				for(int i=1;i<otherListSize-1;i++){
-					arrayList.add(otherResponse.outcome.get(i));
+				int length = otherResponse.outcome.size();
+				for(int i=0;i<length-1;i++){
+					try {
+						output.writeUTF(otherResponse.outcome.get(i).toJSONString());
+						output.flush();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
-				for(int i=1;i<localListSize-1;i++){
-					arrayList.add(localReturn.returnList.get(i));
+				
+				int length2 = localReturn.returnList.size();
+				for(int i=1;i<length2-1;i++){
+					try {
+						output.writeUTF(localReturn.returnList.get(i).toString());
+						output.flush();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
-				JSONObject resultSize = new JSONObject();
-				resultSize.put("resultSize", totalSize);
-				arrayList.add(resultSize);
+				
+				int totalLength = length+length2-4;
+				JSONObject jsonObject = new JSONObject();
+				jsonObject.put("resultSize", totalLength);
 				
 				try {
-					int length = arrayList.size();
-					for(int i=0;i<length;i++){
-						output.writeUTF(arrayList.get(i).toString());
-					}
-					
+					output.writeUTF(jsonObject.toJSONString());
 					output.flush();
-					System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					System.err.println(Thread.currentThread().getName() + ":Error while sending");
+					e.printStackTrace();
 				}
+				
 				
 			}
 		}
