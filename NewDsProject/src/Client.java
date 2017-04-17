@@ -26,7 +26,7 @@ import org.json.JSONArray;
  * @author zizheruan
  *
  */
-public class Client {//waiting to be tested with teacher's server: GSON, relay, debug!!!
+public class Client {//already tested with teacher's server: GSONv, relayv, debug.
 	public static String ip = "localhost";
 	public static String ip2 = "sunrise.cis.unimelb.edu.au";
 	public static String ip3 = "10.12.162.15";
@@ -51,6 +51,11 @@ public class Client {//waiting to be tested with teacher's server: GSON, relay, 
 			out.writeUTF(userInput.toJSONString());
 			out.flush();
 			System.out.println("command sent to server: "+userInput.toJSONString());
+			if(hasDebugOption){
+			    System.out.println("-setting debug on");
+			    System.out.println(commandType+" to "+ip2+":"+port);//!!!!change IP
+				System.out.println("SENT: "+userInput.toJSONString());
+			}
 			
 			while(true){//当返回多个包时，in.available始终大于0，接受多个包，在此期间String commandType值不变
 				if(in.available()>0){
@@ -83,7 +88,19 @@ public class Client {//waiting to be tested with teacher's server: GSON, relay, 
 	    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
 	    		//System.out.println(args.length+""+argsWithCommand.length);// just for test
 		}
-	 	
+		for(String str: args){
+			if(str.equals("-debug")){
+				hasDebugOption=true;
+	    		String[] argsWithDebug = new String[args.length+1];
+	    		argsWithDebug[argsWithDebug.length-1] = "";
+	    		System.arraycopy(args, 0, argsWithDebug, 0, args.length);
+	    		
+	    		args = new String [args.length+1];
+	    		System.arraycopy(argsWithDebug, 0, args, 0, argsWithDebug.length);
+	    		break;
+			}
+		}
+
 		String command = "";
 		String name = "";
 	    String description = "";    
@@ -245,10 +262,7 @@ public class Client {//waiting to be tested with teacher's server: GSON, relay, 
 			JSONParser parser = new JSONParser();
 			JSONObject serverResponse;		
 			serverResponse = (JSONObject)parser.parse(input);
-			if(hasDebugOption==true){
-		       System.out.println("-setting debug on");
-		       System.out.println(commandType+" to localhost:"+port);
-		       System.out.println("SENT: "+userInput.toJSONString());
+			if(hasDebugOption){
 		       System.out.println("RECEIVED: "+serverResponse.toJSONString());
 			}
 			
