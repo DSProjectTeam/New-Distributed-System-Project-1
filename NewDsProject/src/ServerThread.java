@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
+import javax.management.Query;
 import javax.xml.ws.Response;
 
 import org.json.simple.JSONObject;
@@ -82,7 +83,7 @@ public class ServerThread extends Thread{
 		JSONObject sendResponse;
 		JSONObject localResponse;
 		JsonArray jsonArray;
-		ArrayList<JSONObject> otherResponse = new ArrayList<>();
+		QueryData queryData;
 		try {
 			jsonObject = (JSONObject) parser.parse(string);
 			/*ConstantEnum.CommandType command  = ConstantEnum.CommandType.valueOf((String)jsonObject.get("command"));*/
@@ -165,39 +166,7 @@ public class ServerThread extends Thread{
 				String owner_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.owner.name());
 				
 				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket);
-				
-				/*if(fetchResult.resource == null){
-					try {
-						output.writeUTF(fetchResult.serverResponse.toJSONString());
-						output.flush();
-						System.out.println(Thread.currentThread().getName()+":sending response message!");
-					} catch (IOException e) {
-						e.printStackTrace();
-						System.err.println(Thread.currentThread().getName() + ":Error while sending");
-					}
-				}else{
-					try {
-						*//**jsonobject of a match resource*//*
-						output.writeUTF(fetchResult.serverResponse.toJSONString());
-						
-						*//**convert file to the byte array for transmission*//*
-						Path path = fetchResult.resource.file.file.toPath();
-						byte[] fileData = Files.readAllBytes(path);
-						output.write(fileData);
-						
-						*//**put resource size in a jsonobject*//*
-						JSONObject resourceSize = new JSONObject();
-						resourceSize.put(ConstantEnum.CommandArgument.resourceSize.name(), 1);
-						
-						output.writeUTF(resourceSize.toJSONString());
-						output.flush();
-						System.out.println(Thread.currentThread().getName()+":sending response message!");
-						
-					} catch (IOException e) {
-						System.err.println(Thread.currentThread().getName() + ":Error while sending");
-					}
-					
-				}*/
+			
 				
 				
 				break;
@@ -218,32 +187,36 @@ public class ServerThread extends Thread{
 				}else{
 					relay1 = false;
 				}
-				/*if(relay1==false){
-					sendResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
-				}else{
-					localResponse = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
-					otherResponse = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList);
-					sendResponse = handleRelay(otherResponse, localResponse);
-				}*/
-				QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
-				
-				if (queryReturn.hasMatch==false) {
-					sendMessage(queryReturn.reponseMessage);
-				}else{
-					try {
-						int length = queryReturn.returnArray.size();
-						for(int i=0;i<length;i++){
-							output.writeUTF(queryReturn.returnArray.get(i).toString());
+				if(relay1==false){
+					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					if (queryReturn.hasMatch==false) {
+						sendMessage(queryReturn.reponseMessage);
+					}else{
+						try {
+							int length = queryReturn.returnList.size();
+							for(int i=0;i<length;i++){
+								output.writeUTF(queryReturn.returnList.get(i).toString());
+							}
+							
+							/*output.writeUTF(queryReturn.returnArray.toString());*/
+							output.flush();
+							System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							System.err.println(Thread.currentThread().getName() + ":Error while sending");
 						}
-						
-						/*output.writeUTF(queryReturn.returnArray.toString());*/
-						output.flush();
-						System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						System.err.println(Thread.currentThread().getName() + ":Error while sending");
 					}
+				}else{
+					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					
+					
+					queryData = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList);
+					handleRelay(queryData, localReturn);
 				}
+				
+				/*QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);*/
+				
+				
 				
 				break;
 			case "EXCHANGE":
@@ -269,6 +242,82 @@ public class ServerThread extends Thread{
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+		
+	}
+	
+	public synchronized void handleRelay(QueryData otherResponse,QueryReturn localReturn){
+		
+		//other servers no response or no match, return local query outcome
+		if(otherResponse == null||otherResponse.hasMatch==false){
+			System.out.println("----------------");
+			if (localReturn.hasMatch==false) {
+				sendMessage(localReturn.reponseMessage);
+			}else{
+				try {
+					int length = localReturn.returnList.size();
+					for(int i=0;i<length;i++){
+						output.writeUTF(localReturn.returnList.get(i).toString());
+					}
+					System.out.println("+++++++++++++");
+					/*output.writeUTF(queryReturn.returnArray.toString());*/
+					output.flush();
+					System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					System.err.println(Thread.currentThread().getName() + ":Error while sending");
+				}
+			}
+			
+		
+		}else{
+			//local query error, return other server response
+			if(localReturn.hasMatch==false){
+				int length = otherResponse.outcome.size();
+				for(int i=0;i<length;i++){
+					try {
+						output.writeUTF(otherResponse.outcome.get(i).toJSONString());
+						output.flush();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			
+				//local and other both have match
+			}else{
+				ArrayList<JSONObject> arrayList = new ArrayList<>();
+				int otherListSize = otherResponse.outcome.size();
+				int otherQuerySize = Integer.parseInt(otherResponse.outcome.get(otherListSize-1).get("resultSize").toString());
+				int localListSize= localReturn.returnList.size();
+				int localQuerySize = Integer.parseInt(localReturn.returnList.get(localListSize-1).get("resultSize").toString());
+				int totalSize = otherQuerySize+localQuerySize;
+				JSONObject totalResponse = new JSONObject();
+				totalResponse.put("response", "success");
+				arrayList.add(totalResponse);
+				for(int i=1;i<otherListSize-1;i++){
+					arrayList.add(otherResponse.outcome.get(i));
+				}
+				for(int i=1;i<localListSize-1;i++){
+					arrayList.add(localReturn.returnList.get(i));
+				}
+				JSONObject resultSize = new JSONObject();
+				resultSize.put("resultSize", totalSize);
+				arrayList.add(resultSize);
+				
+				try {
+					int length = arrayList.size();
+					for(int i=0;i<length;i++){
+						output.writeUTF(arrayList.get(i).toString());
+					}
+					
+					output.flush();
+					System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					System.err.println(Thread.currentThread().getName() + ":Error while sending");
+				}
+				
+			}
 		}
 		
 	}
@@ -305,7 +354,7 @@ public class ServerThread extends Thread{
 		
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
-		String filePathPattern = "\\w+\\/";
+		String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -363,8 +412,12 @@ public class ServerThread extends Thread{
 							
 							/*jsonArray.add(serverResponse);*/
 							
-							matchResource.put(ConstantEnum.CommandArgument.name.name(), resources.get(uri).name);
-							matchResource.put(ConstantEnum.CommandArgument.tags.name(), resources.get(uri).tag);
+							matchResource.put("name", resources.get(uri).name);
+							JSONArray tagsArray = new JSONArray();
+							for (String tag: resources.get(uri).tag){
+								tagsArray.add(tag);
+							}
+							matchResource.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);
 							matchResource.put(ConstantEnum.CommandArgument.description.name(), resources.get(uri).description);
 							matchResource.put(ConstantEnum.CommandArgument.uri.name(), resources.get(uri).URI);
 							matchResource.put(ConstantEnum.CommandArgument.channel.name(),resources.get(uri).channel);
@@ -379,13 +432,25 @@ public class ServerThread extends Thread{
 							Integer ezport = serverSocket.getLocalPort();
 							String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
 							matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-							matchResource.put(ConstantEnum.CommandArgument.resourceSize.name(), file.length());
+							matchResource.put("resourceSize", file.length());
 							
+							ArrayList<JSONObject> map = new ArrayList<>();
 							/*jsonArray.add(matchResource);*/
+							map.add(serverResponse);
+							map.add(matchResource);
 							
 							try {
-								this.output.writeUTF(serverResponse.toJSONString());
-								this.output.writeUTF(matchResource.toJSONString());
+								/*this.output.writeUTF(serverResponse.toString());*/
+								/*this.output.writeUTF(matchResource.toString());*/
+								/*int length = jsonArray.size();
+								
+								for(int i =0;i<length;i++){
+									output.writeUTF(jsonArray.get(i).toString());
+								}*/
+								for(JSONObject object:map){
+									output.writeUTF(object.toJSONString());
+									output.flush();
+								}
 								
 								
 								// start sending file
@@ -394,15 +459,29 @@ public class ServerThread extends Thread{
 								int num;
 								while((num = byteFile.read(sendingBuffer))>0){
 									System.out.println(num);
-									this.output.write(Arrays.copyOf(sendingBuffer, num));
+									output.write(Arrays.copyOf(sendingBuffer, num));
 								}
+								System.out.println("............");
 								byteFile.close();
 								
 								
 							} catch (IOException e) {
 								e.printStackTrace();
 							}		
-						}					
+						}else{
+							System.out.println("file do not exists");
+							errorMessage = "invalid resourceTemplate";
+							response = "error";
+							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+							try {
+								this.output.writeUTF(serverResponse.toJSONString());
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+						
 					}else{
 						System.out.println("file do not exists");
 						errorMessage = "invalid resourceTemplate";
@@ -424,58 +503,7 @@ public class ServerThread extends Thread{
 
 	}
 	
-	/*public synchronized JSONObject handleRelay(ArrayList<JSONObject> otherResponse,JSONObject localResponse){
-		*//**other server response error, return local response*//*
-		JSONObject response = new JSONObject();
-		if(otherResponse==null){
-			return localResponse;
-		}else{
-			*//**local query error, return other server's response*//*
-			if(localResponse.get(ConstantEnum.CommandType.response.name()).equals("error")){
-				
-				*//**other server error*//*
-				if(otherResponse.get(0).get("response").equals("error")){
-					return localResponse;
-					
-				*//**other server success*//*
-				}else{
-					response.put("response", "success");
-					*//**store every jsonobject(resource) from other server*//*
-					JSONObject resources = new JSONObject();
-					
-					int size=0;
-					Integer count = 1;
-					for(JSONObject jsonObject:otherResponse){
-						size =  size+Integer.parseInt(jsonObject.get("resultSize").toString());
-						response.put("resource"+count.toString(), jsonObject.get("resource"));
-						count++;
-					}
-					response.put("resultSize", size);
-					return response;					
-				}
-				
-			}else{
-				*//**local response success, other server response success, merge*//*
-				int localSize = Integer.parseInt(localResponse.get("resultSize").toString());
-				int otherSize = 0;
-				Integer count = 1;
-				response.put("response", "success");
-				for(JSONObject jsonObject:otherResponse){
-					otherSize =  otherSize+Integer.parseInt(jsonObject.get("resultSize").toString());
-					response.put("resource"+count.toString(), jsonObject.get("resource"));
-				}
-				response.put("resource", value)
-				
-				
-				JSONArray jsonArray = new JSONArray();
-				
-			}
-		}
-		
-		
-		return null;
-		
-	}*/
+	
 	
 	
 	

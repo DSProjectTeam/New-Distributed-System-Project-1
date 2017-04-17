@@ -267,8 +267,9 @@ public class Client {
 			if(serverResponse.containsKey("resourceSize")){
 				try{
 					// The file location
-					String fileName = "/Users/zizheruan/OneDrive - The University of Melbourne/Distributed System/Project1/DownloadFiles/"+serverResponse.get("name");
+					String fileName = "client_files/"+serverResponse.get("name");
 					
+					System.out.println("client_files/"+serverResponse.get("name"));
 					// Create a RandomAccessFile to read and write the output file.
 					RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");
 					

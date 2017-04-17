@@ -1,3 +1,4 @@
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -174,7 +175,7 @@ public class ServerHandler {
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
 		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
-		String filePathPattern = "\\w+\\/";
+		String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -263,6 +264,7 @@ public class ServerHandler {
 		String response;
 		org.json.JSONArray returnArray = new org.json.JSONArray();
 		JSONArray returnArray1 = new JSONArray();	
+		ArrayList<JSONObject> returnList = new ArrayList<>();
 		QueryReturn queryReturn;
 		JSONObject serverResponse = new JSONObject();
 		
@@ -311,7 +313,9 @@ public class ServerHandler {
 							
 							serverResponse.put(ConstantEnum.CommandType.response, "success");
 							/*returnArray.put(serverResponse);*/
-							returnArray1.add(serverResponse);
+							
+							/*returnArray1.add(serverResponse);*/
+							returnList.add(serverResponse);
 							for(Resource resourceTemp: allResource){
 								
 								JSONObject MatchResouce = new JSONObject();
@@ -335,15 +339,19 @@ public class ServerHandler {
 								Integer ezport = serverSocket.getLocalPort();
 								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-								/*returnArray.put(MatchResouce);*/
-								returnArray1.add(MatchResouce);
+								
+								/*returnArray1.add(MatchResouce);*/
+								returnList.add(MatchResouce);
+								
 							}
 							returnSize.put(ConstantEnum.CommandType.resultSize, allResource.size());
 							
-							/*returnArray.put(returnSize);*/
-							returnArray1.add(returnSize);
-							/*queryReturn = new QueryReturn(returnArray);*/
-							queryReturn = new QueryReturn(returnArray1);
+							
+							/*returnArray1.add(returnSize);*/		
+							returnList.add(returnSize);							
+							
+							/*queryReturn = new QueryReturn(returnArray1);*/
+							queryReturn = new QueryReturn(returnList); 
 							hasMacthResource = true;
 						}else{
 							errorMessage = "no resource in store";
@@ -436,8 +444,10 @@ public class ServerHandler {
 							response = "success";							
 							serverResponse.put(ConstantEnum.CommandType.response.name(), response);
 							
-							/*returnArray.put(serverResponse);*/
-							returnArray1.add(serverResponse);
+							
+							/*returnArray1.add(serverResponse);*/
+							returnList.add(serverResponse);
+							
 							JSONObject returnSize = new JSONObject();
 							for(Resource resouce: matchResourceSet){
 								JSONObject MatchResouce = new JSONObject();
@@ -463,18 +473,18 @@ public class ServerHandler {
 	
 								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
-								/*returnArray.put(MatchResouce);*/
-								returnArray1.add(MatchResouce);
+								
+								/*returnArray1.add(MatchResouce);*/
+								returnList.add(MatchResouce);
 							}
 							//serverResponse.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
 							
 							returnSize.put(ConstantEnum.CommandType.resultSize, matchResourceSet.size());
 							
-							/*returnArray.put(returnSize);
-							queryReturn = new QueryReturn(returnArray);*/
-							
-							returnArray1.add(returnSize);
-							queryReturn = new QueryReturn(returnArray1);
+							/*returnArray1.add(returnSize);*/
+							returnList.add(returnSize);
+							/*queryReturn = new QueryReturn(returnArray1);*/
+							queryReturn = new QueryReturn(returnList);
 							
 							hasMacthResource = true;
 						}else{
@@ -524,11 +534,12 @@ public class ServerHandler {
 		}
 	
 	
-	/*public synchronized static ArrayList<JSONArray> handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, ServerSocket serverSocket, ArrayList<String> serverList){
+	public synchronized static QueryData handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, ServerSocket serverSocket, ArrayList<String> serverList){
 			JSONObject inputQuerry = new JSONObject();
+			ArrayList<JSONObject> arrayList = new ArrayList<>();
+			QueryData otherReturn = new QueryData();	
 			
-			
-			*//**parse input query from the client*//*
+			/**parse input query from the client*/
 			try {
 				JSONParser parser = new JSONParser();
 				inputQuerry = (JSONObject) parser.parse(inputMessage);
@@ -537,86 +548,83 @@ public class ServerHandler {
 				e.printStackTrace();
 			}
 			
-			*//**replace owner, channel with"" and set relay with true, then forward query*//*
+			/**replace owner, channel with"" and set relay with true, then forward query*/
 			inputQuerry.put("owner", "");
 			inputQuerry.put("channel", "");
 			inputQuerry.put("relay", false);
 			
 			
 			
-			*//**a list to store success information from other servers*//*
-			ArrayList<JSONArray> successOutcome = new ArrayList<>();
-			ArrayList<JSONArray> errorOutcome = new ArrayList<>();
+			/**a list to store success information from other servers*/
+			ArrayList<JSONObject> successOutcome = new ArrayList<>();
+			ArrayList<JSONObject> errorOutcome = new ArrayList<>();			
 			
-				
-
 			if(!serverList.isEmpty()){
-					
-					
-				for(String server: serverList){
-					String[] hostAndPortTemp = server.split(":");
-					String tempIp = hostAndPortTemp[0];
-					Integer tempPort = Integer.parseInt(hostAndPortTemp[1]);
-						
-					try {
-						Socket otherServer = new Socket(tempIp, tempPort);
-						DataInputStream inputStream = new DataInputStream(otherServer.getInputStream());
-						DataOutputStream outputStream = new DataOutputStream(otherServer.getOutputStream());
-						outputStream.writeUTF(inputQuerry.toJSONString());
-						outputStream.flush();
-						System.out.println("query sent to other server");
-						
-						while(inputStream.available()>0){
-							String otherServerResponse = inputStream.readUTF();
-							JSONParser parser2 = new JSONParser();
-							JSONObject otherResponse = new JSONObject();
-							JSONArray  jsonArray = new JSONArray();
+			
+					for(String server: serverList){
+						String[] hostAndPortTemp = server.split(":");
+						String tempIp = hostAndPortTemp[0];
+						Integer tempPort = Integer.parseInt(hostAndPortTemp[1]);
 							
+						try {
+							Socket otherServer = new Socket(tempIp, tempPort);
+							DataInputStream inputStream = new DataInputStream(otherServer.getInputStream());
+							DataOutputStream outputStream = new DataOutputStream(otherServer.getOutputStream());
+							System.out.println(inputQuerry.toJSONString());
+							outputStream.writeUTF(inputQuerry.toJSONString());
+							outputStream.flush();
+							System.out.println("query sent to other server");
 							
-							try {
-								otherResponse = (JSONObject)parser2.parse(otherServerResponse);
-								jsonArray = (JSONArray) parser2.parse(otherServerResponse);
-								String response = otherResponse.get("response").toString();
-								JSONObject temp = (JSONObject)jsonArray.get(0);
-								String response= temp.get("response").toString();
-								
-								switch (response) {
-								case "success":
-									successOutcome.add(jsonArray);
-									break;
+						/*测试了一下，好像每个包过来，available()从一个值变为0，然后下一个包过来，又从一个值变为0，断断续续的变化。*/
+							while(true){
+								if(inputStream.available()>0){
+									System.out.println(inputStream.available());
+									String otherServerResponse = inputStream.readUTF();
+									JSONParser parser2 = new JSONParser();
 									
-								case "error" :
-									errorOutcome.add(jsonArray);
-									break;
-								default:
-									break;
+									JSONObject otherResponse = new JSONObject();
+									otherResponse = (JSONObject)parser2.parse(otherServerResponse);
+									System.out.println(otherResponse.toJSONString());
+									JSONArray  jsonArray = new JSONArray();
+									
+									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
+									System.out.println(arrayList.size());
 								}
 								
-							} catch (org.json.simple.parser.ParseException e) {
-								
-								e.printStackTrace();
 							}
+									
+							   
+								/*if(arrayList.get(0).containsKey("response")){
+									if (arrayList.get(0).get("resposne").equals("success")) {
+										int size = arrayList.size();
+										for(int i =0; i<size;i++){
+											successOutcome.add(arrayList.get(i));
+											
+										}
+										otherReturn = new QueryData(true, successOutcome);
+										
+										
+									}else{
+										int size = arrayList.size();
+										for(int i = 0;i<size;i++){
+											errorOutcome.add(arrayList.get(i));
+										}
+										otherReturn = new QueryData(false, errorOutcome);
+										
+									}
+									
+								}*/	
+								
 							
+											
+								} catch (Exception e) {
+									
+									e.printStackTrace();
+								}
 						}
-							
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					
-					
-						
-						
-				}
-				if (successOutcome!=null) {
-					return successOutcome;
-				}else{
-					return errorOutcome;
-				}
-				
-			
-		
+				} 
+				return otherReturn;
 			}
-	}*/
 	
 	
 	
