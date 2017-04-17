@@ -12,6 +12,12 @@ import org.apache.commons.cli.Options;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
 //import org.json.simple.JSONArray;
 import org.json.JSONArray;
 
@@ -20,14 +26,14 @@ import org.json.JSONArray;
  * @author zizheruan
  *
  */
-public class Client {
+public class Client {//waiting to be tested with teacher's server: GSON, relay, debug!!!
 	public static String ip = "localhost";
 	public static String ip2 = "sunrise.cis.unimelb.edu.au";
 	public static String ip3 = "10.12.162.15";
 	public static int port = 3780;
 	public static String commandType;
-	
-	
+	public static boolean hasDebugOption;
+
 	/**
 	 * main method
 	 * @param args
@@ -40,6 +46,7 @@ public class Client {
 			//outputSteam
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			commandType = "";
+			hasDebugOption = false;
 			JSONObject userInput = handleClientInput(args);
 			out.writeUTF(userInput.toJSONString());
 			out.flush();
@@ -48,7 +55,7 @@ public class Client {
 			while(true){//当返回多个包时，in.available始终大于0，接受多个包，在此期间String commandType值不变
 				if(in.available()>0){
 					String responseMessage = in.readUTF();
-					handleServerResponse(responseMessage, in);
+					handleServerResponse(userInput, responseMessage, in);
 					
 				}
 			}	
@@ -67,7 +74,7 @@ public class Client {
 		
 		if (args[0].equals("-publish")||args[0].equals("-remove")||args[0].equals("-share")||
 				args[0].equals("-query")||args[0].equals("-fetch")||args[0].equals("-exchange")){
-			commandType = args[0];//extract command type, so we still remember the command type when handling response.
+				commandType = args[0];//extract command type, so we still remember the command type when handling response.
 	    		String[] argsWithCommand = new String[args.length+1];
 	    		argsWithCommand[0] = "-command";
 	    		System.arraycopy(args, 0, argsWithCommand, 1, args.length);
@@ -85,7 +92,7 @@ public class Client {
 	    String owner = "";
 	    String ezserver = null;// assigned to null !!!according to instruction!!!
 	    String secret = "";
-	    String relay = "";
+	    boolean relay = true;
 	    String serversAll = "";
 	    //还没有debug一项，参考Enum那个类。
 	
@@ -101,6 +108,7 @@ public class Client {
 	    options.addOption("secret",true, "input secret");
 	    options.addOption("relay",true, "input relay");
 	    options.addOption("servers",true, "input servers");//-debug command has not been handled.
+	    options.addOption("debug",true, "input debug");
 	    
 	    CommandLineParser parser = new DefaultParser();
 	    CommandLine cmd = null;
@@ -164,8 +172,8 @@ public class Client {
 	       secret = cmd.getOptionValue("secret");
 	   }  
 	       
-	    if(cmd.hasOption("relay")){
-	       relay = cmd.getOptionValue("relay");
+	    if(cmd.hasOption("relay")){//convert the string the user input in -relay field to boolean.
+	       relay = Boolean.parseBoolean(cmd.getOptionValue("relay"));
 	   }   
 	       
 	    if(cmd.hasOption("servers")){
@@ -182,6 +190,9 @@ public class Client {
 	       userinputTemp.put(ConstantEnum.CommandArgument.serverList.name(),serversJSONArray);   
 	   }
 	   
+	    if(cmd.hasOption("debug")){
+		       hasDebugOption = true;
+		   }   
 	    
 	    if(cmd.hasOption("command")){//switch?
 	        command = cmd.getOptionValue("command");
@@ -226,29 +237,48 @@ public class Client {
 	 * print out the response.
 	 * @param input
 	 */
-	public static void handleServerResponse(String input, DataInputStream in){
-		JSONParser parser = new JSONParser();
-		JSONObject serverResponse;
-		
+	public static void handleServerResponse(JSONObject userInput, String input, DataInputStream in){
+
+
 		try {
+			//code below ---->debug printing
+			JSONParser parser = new JSONParser();
+			JSONObject serverResponse;		
 			serverResponse = (JSONObject)parser.parse(input);
-			//String response =  (String)serverResponse.get(ConstantEnum.CommandType.response.name());
+			if(hasDebugOption==true){
+		       System.out.println("-setting debug on");
+		       System.out.println(commandType+" to localhost:"+port);
+		       System.out.println("SENT: "+userInput.toJSONString());
+		       System.out.println("RECEIVED: "+serverResponse.toJSONString());
+			}
+			
+			//code below ---->response printing in GSON format.
+			JsonParser jsonParser = new JsonParser();
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
+			JsonElement element = jsonParser.parse(input);
+			String show = gson.toJson(element);
 			//use the command type recorded when reading user's input
 			switch (commandType){//How to print out resource properly?
 			case "-publish":
 			case "-remove":
 			case "-share":
 			case "-exchange":
-				System.out.println("response received from server: "+serverResponse.toJSONString());
+//				System.out.println("response received from server: "+serverResponse.toJSONString());
+				System.out.println(show);
 				break;
 			case "-query":
-				System.out.println("response received from server: "+serverResponse.toJSONString());
+//				System.out.println("response received from server: "+serverResponse.toJSONString());
+				System.out.println(show);
 				break;
 			case "-fetch":
-				System.out.println("response received from server: "+serverResponse.toJSONString());
+//				System.out.println("response received from server: "+serverResponse.toJSONString());
+				System.out.println(show);
 				handleDownload(serverResponse,in);
 				break;
-			default: break;//How to deal with default?	
+			/*commandType remains "", and the pair {"command",""} was put into a JSONObject and sent to server.
+				Here we just print out the error message returned from server.*/
+			default: System.out.println("response received from server: "+serverResponse.toJSONString());
+				break;
 			}
 
 		} catch (org.json.simple.parser.ParseException e) {
