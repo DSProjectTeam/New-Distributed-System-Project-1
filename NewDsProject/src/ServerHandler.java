@@ -502,7 +502,8 @@ public class ServerHandler {
 			JSONObject serverResponse = new JSONObject();
 			String response;
 			String errorMessage;
-			String hostnamePattern = "((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)";
+			//in fact, the hostnamePattern cannot find the error in ip format like 999.1234.999.1, because the pattern must fit hostname format.
+			String hostnamePattern = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
 			String portPattern = "^([0-5]?\\d?\\d?\\d?\\d|6[0-4]\\d\\d\\d|65[0-4]\\d\\d|655[0-2]\\d|6553[0-5])$";
 			for(int i=0; i<serverList_exchange.size(); i++){
 				if(!(Pattern.matches(hostnamePattern,hostnameList_exchange.get(i))

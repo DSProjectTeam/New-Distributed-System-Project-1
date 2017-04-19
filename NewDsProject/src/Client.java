@@ -5,6 +5,8 @@ import java.io.RandomAccessFile;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.regex.Pattern;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -26,10 +28,9 @@ import org.json.JSONArray;
  * @author zizheruan
  *
  */
-public class Client {//already tested with teacher's server: GSONv, relayv, debug.
-	public static String ip = "localhost";
-	public static String ip2 = "sunrise.cis.unimelb.edu.au";
-	public static String ip3 = "10.12.162.15";
+public class Client {
+	public static String host = "sunrise.cis.unimelb.edu.au";
+//	public static String ip = "10.12.162.15";
 	public static int port = 3780;
 	public static String commandType;
 	public static boolean hasDebugOption;
@@ -40,28 +41,26 @@ public class Client {//already tested with teacher's server: GSONv, relayv, debu
 	 */
 	public static void main(String[] args){
 		try {
-			Socket socket = new Socket(ip2,port);
-			//inputStream
-			DataInputStream in = new DataInputStream(socket.getInputStream());
-			//outputSteam
-			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			commandType = "";
 			hasDebugOption = false;
 			JSONObject userInput = handleClientInput(args);
+			
+			Socket socket = new Socket(host,port);
+			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			out.writeUTF(userInput.toJSONString());
 			out.flush();
 			System.out.println("command sent to server: "+userInput.toJSONString());
 			if(hasDebugOption){
 			    System.out.println("-setting debug on");
-			    System.out.println(commandType+" to "+ip2+":"+port);//!!!!change IP
+			    System.out.println(commandType+" to "+host+":"+port);//!!!!change IP
 				System.out.println("SENT: "+userInput.toJSONString());
 			}
 			
+			DataInputStream in = new DataInputStream(socket.getInputStream());
 			while(true){//当返回多个包时，in.available始终大于0，接受多个包，在此期间String commandType值不变
 				if(in.available()>0){
 					String responseMessage = in.readUTF();
 					handleServerResponse(userInput, responseMessage, in);
-					
 				}
 			}	
 		} catch (IOException e) {
@@ -111,7 +110,6 @@ public class Client {//already tested with teacher's server: GSONv, relayv, debu
 	    String secret = "";
 	    boolean relay = true;
 	    String serversAll = "";
-	    //还没有debug一项，参考Enum那个类。
 	
 	    Options options = new Options();
 	    options.addOption("command",true,"input command"); 
@@ -124,8 +122,10 @@ public class Client {//already tested with teacher's server: GSONv, relayv, debu
 	    options.addOption("ezserver",true, "input ezserver");
 	    options.addOption("secret",true, "input secret");
 	    options.addOption("relay",true, "input relay");
-	    options.addOption("servers",true, "input servers");//-debug command has not been handled.
+	    options.addOption("servers",true, "input servers");
 	    options.addOption("debug",true, "input debug");
+	    options.addOption("host",true, "input host");
+	    options.addOption("port",true, "input port");
 	    
 	    CommandLineParser parser = new DefaultParser();
 	    CommandLine cmd = null;
@@ -139,8 +139,7 @@ public class Client {//already tested with teacher's server: GSONv, relayv, debu
 	    
 	    JSONObject userinputTemp = new JSONObject();
 	    JSONObject resource = new JSONObject();
-
-	    
+ 
 	    if(cmd.hasOption("name")){
 	       name = cmd.getOptionValue("name"); 
 	   }
@@ -191,7 +190,26 @@ public class Client {//already tested with teacher's server: GSONv, relayv, debu
 	       
 	    if(cmd.hasOption("relay")){//convert the string the user input in -relay field to boolean.
 	       relay = Boolean.parseBoolean(cmd.getOptionValue("relay"));
-	   }   
+	   }
+	    
+	    if(cmd.hasOption("host")){
+	    	//in fact, the hostnamePattern cannot find the error in ip format like 999.1234.999.1, because the pattern must fit hostname format.
+	    	//In other words, the hostipPattern becomes useless. it's included in hostnamePattern.
+			String hostipPattern = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+			String hostnamePattern = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
+			if(Pattern.matches(hostnamePattern, cmd.getOptionValue("host"))||Pattern.matches(hostipPattern, cmd.getOptionValue("host"))){
+				host = cmd.getOptionValue("host");
+			}
+			else System.out.println("invalid host");//should I output this here?
+	    }
+	    
+	    if(cmd.hasOption("port")){
+	    	String portPattern = "^([0-5]?\\d?\\d?\\d?\\d|6[0-4]\\d\\d\\d|65[0-4]\\d\\d|655[0-2]\\d|6553[0-5])$";
+			if(Pattern.matches(portPattern, cmd.getOptionValue("port"))){
+				port = Integer.parseInt(cmd.getOptionValue("port"));
+			}
+			else System.out.println("invalid port");//should I output this here?
+		}
 	       
 	    if(cmd.hasOption("servers")){
 	       serversAll = cmd.getOptionValue("servers");
