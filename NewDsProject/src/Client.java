@@ -22,6 +22,7 @@ import com.google.gson.JsonParser;
 
 //import org.json.simple.JSONArray;
 import org.json.JSONArray;
+import org.json.JSONException;
 
 /**
  * This class is the only class for Client.
@@ -30,7 +31,7 @@ import org.json.JSONArray;
  */
 public class Client {
 	public static String host = "sunrise.cis.unimelb.edu.au";
-//	public static String ip = "10.12.162.15";
+//	public static String host = "10.12.162.15";
 	public static int port = 3780;
 	public static String commandType;
 	public static boolean hasDebugOption;
@@ -44,7 +45,7 @@ public class Client {
 			commandType = "";
 			hasDebugOption = false;
 			JSONObject userInput = handleClientInput(args);
-			
+
 			Socket socket = new Socket(host,port);
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			out.writeUTF(userInput.toJSONString());
