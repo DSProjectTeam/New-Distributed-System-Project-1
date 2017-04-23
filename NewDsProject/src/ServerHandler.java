@@ -285,7 +285,7 @@ public class ServerHandler {
 		boolean invalidResourceValue = Pattern.matches(invalidString, name_query)||Pattern.matches(invalidString, channel_query)||
 				Pattern.matches(invalidString, description_query)||Pattern.matches(invalidString, uri_query)||
 				Pattern.matches(invalidString, owner_query)||invalidTag;
-		System.out.println("querying");
+		//System.out.println("querying");
 		
 		boolean hasMacthResource = false;
 		do{

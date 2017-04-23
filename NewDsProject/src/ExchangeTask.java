@@ -14,8 +14,10 @@ import org.json.simple.parser.ParseException;
 
 public class ExchangeTask extends TimerTask{
 	EZshareServer eZshareServer;
-	public ExchangeTask(EZshareServer ez) {
+	public static boolean hasDebugOption;
+	public ExchangeTask(EZshareServer ez, boolean hasDebugOption) {
 		this.eZshareServer = ez;
+		this.hasDebugOption = hasDebugOption;
 	}
 	
 	@Override
@@ -50,16 +52,22 @@ public class ExchangeTask extends TimerTask{
 		    	    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 					out.writeUTF(exchangeOutput.toJSONString());
 					out.flush();
+					while(hasDebugOption){
+						System.out.println("SENT: "+exchangeOutput.toJSONString());
+					}
 					System.out.println("command sent to server: "+exchangeOutput.toJSONString());
 					
 					DataInputStream in = new DataInputStream(socket.getInputStream());
 					while(true){
 						if(in.available()>0){
-							String responseMessage = in.readUTF();
+							String responseMessage = in.readUTF();							
 							JSONObject jsonObject;
 							JSONObject sendResponse;
 							JSONParser parser = new JSONParser();
 							jsonObject = (JSONObject) parser.parse(responseMessage);
+							while(hasDebugOption){
+								System.out.println("RECEIVED: "+jsonObject.toJSONString());
+							}
 							JSONArray serverListJSONArray = (JSONArray) jsonObject.get("serverList");// need to deal with "serverList" missing	!
 							ArrayList<String> serverList_exchange = new ArrayList<>();
 							ArrayList<String> hostnameList_exchange = new ArrayList<>();
@@ -78,6 +86,9 @@ public class ExchangeTask extends TimerTask{
 							sendResponse = ServerHandler.handlingExchange(serverList, serverList_exchange, hostnameList_exchange, portList_exchange);
 							out.writeUTF(sendResponse.toJSONString());
 							out.flush();
+							while(hasDebugOption){
+								System.out.println("SENT: "+sendResponse.toJSONString());
+							}
 						}
 					}	
 			} catch (ParseException e) {
