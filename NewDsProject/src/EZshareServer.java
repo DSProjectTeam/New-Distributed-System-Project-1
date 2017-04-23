@@ -145,14 +145,14 @@ public class EZshareServer {
 		try {
 			EZshareServer eZshareServer = new EZshareServer(port);
 			
-			eZshareServer.server.setSoTimeout(connectioninterval);
+			/*eZshareServer.server.setSoTimeout(connectioninterval);*/
 			
 			Timer timer = new Timer();
 			/*long delay1 = 1000*60*10; //10mins
 			long delay2 = 1000*60*10; //10mins
 */			
 
-			ExchangeTask task = new ExchangeTask(eZshareServer);
+			ExchangeTask task = new ExchangeTask(eZshareServer,hasDebugOption);
 			
 			/**every 10 mins, contact a randomly selected server in the server list*/
 			
@@ -162,7 +162,8 @@ public class EZshareServer {
 			while(true){
 				Socket client = EZshareServer.server.accept();
 				System.out.println("client applying for connection");
-				new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server, eZshareServer.serverList, eZshareServer.hasDebugOption).start();
+				new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
+						eZshareServer.serverList, eZshareServer.hasDebugOption, connectioninterval).start();
 				/*new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();*/
 			}
 			

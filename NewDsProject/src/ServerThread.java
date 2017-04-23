@@ -25,6 +25,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.json.simple.JSONArray;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.function.LongBinaryOperator;
+import java.util.logging.Handler;
 
 public class ServerThread extends Thread{
 	
@@ -46,7 +50,10 @@ public class ServerThread extends Thread{
 	
 	public static boolean hasDebugOption;
 	
-	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket, ArrayList<String> serverList, boolean hasDebugOption){
+	public int interval;
+	
+	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket,
+			ArrayList<String> serverList, boolean hasDebugOption, int interval){
 		try {
 			this.clientSocket = socket;
 			this.resources = resources;	
@@ -56,6 +63,24 @@ public class ServerThread extends Thread{
 			this.serverSocket = serverSocket;
 			this.serverList = serverList;
 			this.hasDebugOption = hasDebugOption;
+			this.interval = interval;
+			
+			new Timer().scheduleAtFixedRate(new TimerTask() {
+				
+				@Override
+				public void run() {
+					try {
+						String inputMessage = input.readUTF();
+						handleCommand(inputMessage);
+						
+						
+					} catch (Exception e) {
+						// TODO: handle exception
+					}
+					
+				}
+			}, 0, interval);
+			
 		} catch (IOException e) {
 			if(clientSocket!=null){
 				try {
@@ -67,7 +92,9 @@ public class ServerThread extends Thread{
 		}
 	}
 	
-	@Override
+	
+	
+	/*@Override
 	public void run() {
 		try {
 			String inputMessage = input.readUTF();
@@ -77,7 +104,14 @@ public class ServerThread extends Thread{
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
+	}*/
+	public static String[] handleTags(String str){
+		String removeQuote = str.substring(1, str.length()-1);
+		String finalStr = removeQuote.replaceAll("\"", "");
+		System.out.println(finalStr);
+		return finalStr.split(",");
 	}
+	
 	
 	public synchronized void handleCommand (String string){
 		JSONParser parser = new JSONParser();
@@ -105,7 +139,7 @@ public class ServerThread extends Thread{
 				JSONObject resource_publish = (JSONObject) jsonObject.get("resource");
 				//System.out.println(resource_publish.toJSONString());
 				
-				String [] tags = resource_publish.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String[] tags = handleTags(resource_publish.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				ArrayList<String> tag = tagTolist(tags);
 				String name = resource_publish.get(ConstantEnum.CommandArgument.name.name()).toString();
 				//System.out.println(name.length()+" "+name);
@@ -122,7 +156,7 @@ public class ServerThread extends Thread{
 			case "REMOVE":
 				JSONObject resource_remove = (JSONObject) jsonObject.get("resource");
 				
-				String [] tags_remove = resource_remove.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_remove = handleTags(resource_remove.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_remove = resource_remove.get(ConstantEnum.CommandArgument.name.name()).toString();
 				
 				String description_remove = resource_remove.get(ConstantEnum.CommandArgument.description.name()).toString();
@@ -145,7 +179,7 @@ public class ServerThread extends Thread{
 				break;
 			case "SHARE":
 				JSONObject resource_share = (JSONObject) jsonObject.get("resource");
-				String [] tags_share = resource_share.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_share = handleTags(resource_share.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_share = resource_share.get(ConstantEnum.CommandArgument.name.name()).toString();
 				String description_share = resource_share.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri_share = resource_share.get(ConstantEnum.CommandArgument.uri.name()).toString();
@@ -163,7 +197,7 @@ public class ServerThread extends Thread{
 			case "FETCH":
 				JSONObject fecthTemplate = (JSONObject) jsonObject.get("resourceTemplate");
 				
-				String [] tags_fetch = (String[]) fecthTemplate.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_fetch = handleTags(fecthTemplate.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.name.name());
 				String description_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.description.name());
 				String uri_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.uri.name());
@@ -181,7 +215,7 @@ public class ServerThread extends Thread{
 				JSONArray debugMsg = new JSONArray();
 				boolean relay1;
 				
-				String [] tags_query = template_resource.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_query = handleTags(template_resource.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_query = template_resource.get(ConstantEnum.CommandArgument.name.name()).toString();
 				String description_query = template_resource.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri_query = template_resource.get(ConstantEnum.CommandArgument.uri.name()).toString();
