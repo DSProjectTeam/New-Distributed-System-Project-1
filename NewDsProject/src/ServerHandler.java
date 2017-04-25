@@ -38,7 +38,8 @@ public class ServerHandler {
 		
 		/**Regexp for filePath*/
 		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
-		String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";
+		/*String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";*/
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -109,7 +110,7 @@ public class ServerHandler {
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
 		/**Regexp for filePath*/
-		String filePathPattern = "^(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -175,7 +176,8 @@ public class ServerHandler {
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
 		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
 		/*String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";*/
-		String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";
+		/*String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";*/
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -270,7 +272,7 @@ public class ServerHandler {
 		
 
 		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -455,7 +457,6 @@ public class ServerHandler {
 						
 						
 						//&& tagIncluded
-						System.out.println(tagIncluded);
 						if((channelMatch&& tagIncluded&& ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
 								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 								(name_query.equals("")&&description_query.equals(""))))){
@@ -484,7 +485,7 @@ public class ServerHandler {
 								for (String tag: resouce.tag){
 									tagsArray.add(tag);
 								}
-								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);//------------------------------------------
+								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);
 								MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
 								MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
 								MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);

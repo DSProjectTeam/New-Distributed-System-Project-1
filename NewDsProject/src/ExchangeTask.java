@@ -24,10 +24,11 @@ public class ExchangeTask extends TimerTask{
 	public void run() {
 		// TODO Auto-generated method stub
 		exchangeWithOtherServer(this.eZshareServer.serverList);
+		System.out.println(this.eZshareServer.serverList.size());
 	}
 
 	
-	public static void exchangeWithOtherServer(ArrayList<String> serverList){
+	public synchronized static void exchangeWithOtherServer(ArrayList<String> serverList){
 	    if(!serverList.isEmpty()){
 	    		   JSONObject exchangeOutput = new JSONObject();
 	    		   JSONArray serversJSONArray = new JSONArray();
@@ -52,20 +53,20 @@ public class ExchangeTask extends TimerTask{
 		    	    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 					out.writeUTF(exchangeOutput.toJSONString());
 					out.flush();
-					while(hasDebugOption){
+					if(hasDebugOption){
 						System.out.println("SENT: "+exchangeOutput.toJSONString());
 					}
 					System.out.println("command sent to server: "+exchangeOutput.toJSONString());
 					
-					DataInputStream in = new DataInputStream(socket.getInputStream());
-					while(true){
+					//DataInputStream in = new DataInputStream(socket.getInputStream());
+					/*while(true){
 						if(in.available()>0){
 							String responseMessage = in.readUTF();							
 							JSONObject jsonObject;
 							JSONObject sendResponse;
 							JSONParser parser = new JSONParser();
 							jsonObject = (JSONObject) parser.parse(responseMessage);
-							while(hasDebugOption){
+							if(hasDebugOption){
 								System.out.println("RECEIVED: "+jsonObject.toJSONString());
 							}
 							JSONArray serverListJSONArray = (JSONArray) jsonObject.get("serverList");// need to deal with "serverList" missing	!
@@ -86,14 +87,14 @@ public class ExchangeTask extends TimerTask{
 							sendResponse = ServerHandler.handlingExchange(serverList, serverList_exchange, hostnameList_exchange, portList_exchange);
 							out.writeUTF(sendResponse.toJSONString());
 							out.flush();
-							while(hasDebugOption){
+							if(hasDebugOption){
 								System.out.println("SENT: "+sendResponse.toJSONString());
 							}
 						}
 					}	
 			} catch (ParseException e) {
 				e.printStackTrace();
-			} catch (ConnectException e) {
+			}*/ }catch (ConnectException e) {
 				serverList.remove(randomIndex);
 				System.out.println("The server is not reachable, so it has been removed from serverList");
 			}catch (IOException e) {
@@ -102,6 +103,8 @@ public class ExchangeTask extends TimerTask{
 		       
 		      
 				
+		 }else{
+			 System.out.println("empty server list");
 		 }
 	}
 	

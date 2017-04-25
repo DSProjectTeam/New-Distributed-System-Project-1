@@ -156,8 +156,7 @@ public class EZshareServer {
 			
 			/**every 10 mins, contact a randomly selected server in the server list*/
 			
-			timer.schedule(task, exchangeInterval,exchangeInterval);
-			
+			timer.schedule(new ExchangeTask(eZshareServer,hasDebugOption), exchangeInterval,exchangeInterval);
 			
 			while(true){
 				Socket client = EZshareServer.server.accept();
