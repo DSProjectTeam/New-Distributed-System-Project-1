@@ -37,7 +37,8 @@ public class ServerHandler {
 		JSONObject serverResponse = new JSONObject();
 		
 		/**Regexp for filePath*/
-		String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
+		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
+		String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -140,9 +141,9 @@ public class ServerHandler {
 				}else{
 					
 					/**successful remove*/
-					/*if (resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)&&
-							resources.get(uri).channel.equals(channel))*/
-					if (resources.containsKey(uri)) {
+					if (resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)&&
+							resources.get(uri).channel.equals(channel))
+					/*if (resources.containsKey(uri))*/ {
 						response = "success";
 						resources.remove(uri);
 						serverResponse.put(ConstantEnum.CommandType.response.name(), response);
@@ -256,7 +257,7 @@ public class ServerHandler {
 	
 	public synchronized static QueryReturn handlingQuery(String name_query,String[] tags_query,
 			String description_query, String uri_query,String channel_query, 
-			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket){
+			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket,String hostName){
 		/**用来存放满足template的resource*/
 		ArrayList<Resource> matchResourceSet = new ArrayList<Resource>();
 		String errorMessage;
@@ -302,7 +303,7 @@ public class ServerHandler {
 					
 					/** for query like -query with no parameter*/
 					if(channel_query.equals("")&& owner_query.equals("") && uri_query.equals("") && name_query.equals("")
-							&& description_query.equals("")){
+							&& description_query.equals("")&&tags_query[0].equals("")){
 						ArrayList<Resource> allResource = new ArrayList<Resource>();
 						if(!resources.isEmpty()){
 							JSONObject returnSize = new JSONObject();
@@ -336,7 +337,8 @@ public class ServerHandler {
 								}
 								
 								Integer ezport = serverSocket.getLocalPort();
-								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
+								/*String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();*/
+								String ezserver = hostName+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 								
 								/*returnArray1.add(MatchResouce);*/
@@ -375,7 +377,32 @@ public class ServerHandler {
 						boolean tagIncluded;
 						
 						
-						if(tags_query[0].matches("\\[\\]")){
+						if(tags_query[0].equals("")){
+							tagIncluded = true;
+						}else{
+							if (!resource.tag[0].equals("")) {
+								int tagLength = tags_query.length;
+								int aaa = resource.tag.length;
+								int tagCount=0;
+								for(int i = 0; i<tagLength; i++){
+									for(int j = 0; j<aaa; j++){
+										if(tags_query[i].equals(resource.tag[j])){									
+											tagCount++;
+										}
+									}
+								}
+								if (tagCount==tagLength) {
+									tagIncluded = true;
+								} else {
+									tagIncluded = false;
+								}
+							}else{
+								tagIncluded = true;
+							}
+						}
+						
+						
+						/*if(tags_query[0].matches("\\[\\]")){
 							tagIncluded = true;
 							
 						}else{
@@ -424,15 +451,16 @@ public class ServerHandler {
 									
 								
 							
-						}
+						}*/
 						
 						
 						//&& tagIncluded
-								
+						System.out.println(tagIncluded);
 						if((channelMatch&& tagIncluded&& ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
 								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 								(name_query.equals("")&&description_query.equals(""))))){
 							System.out.println("match");
+							
 							/**将符合要求的资源放在MatchResourceSet里*/
 							matchResourceSet.add(resource);
 						}
@@ -470,7 +498,7 @@ public class ServerHandler {
 								
 								Integer ezport = serverSocket.getLocalPort();
 	
-								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
+								String ezserver = hostName+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 								
 								/*returnArray1.add(MatchResouce);*/
@@ -486,8 +514,8 @@ public class ServerHandler {
 							queryReturn = new QueryReturn(returnList);
 							
 							hasMacthResource = true;
-						}else{
-							errorMessage = "invalid resourceTemplate";
+						}else{							
+							errorMessage = "missing resourceTemplate";
 							response = "error";
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);

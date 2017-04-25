@@ -50,10 +50,12 @@ public class ServerThread extends Thread{
 	
 	public static boolean hasDebugOption;
 	
+	public static String hostName;
+	
 	public int interval;
 	
 	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket,
-			ArrayList<String> serverList, boolean hasDebugOption, int interval){
+			ArrayList<String> serverList, boolean hasDebugOption, int interval, String ServerHostName){
 		try {
 			this.clientSocket = socket;
 			this.resources = resources;	
@@ -64,6 +66,7 @@ public class ServerThread extends Thread{
 			this.serverList = serverList;
 			this.hasDebugOption = hasDebugOption;
 			this.interval = interval;
+			this.hostName = ServerHostName;
 			
 			new Timer().scheduleAtFixedRate(new TimerTask() {
 				
@@ -106,9 +109,11 @@ public class ServerThread extends Thread{
 		}
 	}*/
 	public static String[] handleTags(String str){
-		String removeQuote = str.substring(1, str.length()-1);
+		
+		/*String removeQuote = str.substring(1, str.length()-1);*/
+		String removeQuote = str.replaceAll("\\[|\\]", "");
+		System.out.println(removeQuote);
 		String finalStr = removeQuote.replaceAll("\"", "");
-		System.out.println(finalStr);
 		return finalStr.split(",");
 	}
 	
@@ -228,7 +233,8 @@ public class ServerThread extends Thread{
 					relay1 = false;
 				}
 				if(relay1==false){
-					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query,
+							uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					if (queryReturn.hasMatch==false) {
 						sendMessage(queryReturn.reponseMessage);
 					}else{
@@ -251,7 +257,7 @@ public class ServerThread extends Thread{
 						}
 					}
 				}else{
-					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					
 					
 					queryData = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList,this.hasDebugOption);
@@ -280,7 +286,7 @@ public class ServerThread extends Thread{
 				sendResponse = ServerHandler.handlingExchange(serverList, serverList_exchange, hostnameList_exchange, portList_exchange);
 				sendMessage(sendResponse);
 				break;
-			default:
+			default:				
 				break;
 			}
 		} catch (ParseException e) {
