@@ -105,7 +105,7 @@ public class EZshareServer {
 		}
 	    
 	    if(cmd.hasOption("advertisedhostname")){
-	    	hostName = cmd.getOptionValue("hostName");
+	    	hostName = cmd.getOptionValue("advertisedhostname");
 	    }else{
 	    	hostName = "localhost";
 	    }
@@ -156,14 +156,13 @@ public class EZshareServer {
 			
 			/**every 10 mins, contact a randomly selected server in the server list*/
 			
-			timer.schedule(task, exchangeInterval,exchangeInterval);
-			
+			timer.schedule(new ExchangeTask(eZshareServer,hasDebugOption), exchangeInterval,exchangeInterval);
 			
 			while(true){
 				Socket client = EZshareServer.server.accept();
 				System.out.println("client applying for connection");
 				new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
-						eZshareServer.serverList, eZshareServer.hasDebugOption, connectioninterval).start();
+						eZshareServer.serverList, eZshareServer.hasDebugOption, connectioninterval,hostName).start();
 				/*new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();*/
 			}
 			

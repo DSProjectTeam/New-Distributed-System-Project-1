@@ -50,10 +50,12 @@ public class ServerThread extends Thread{
 	
 	public static boolean hasDebugOption;
 	
+	public static String hostName;
+	
 	public int interval;
 	
 	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket,
-			ArrayList<String> serverList, boolean hasDebugOption, int interval){
+			ArrayList<String> serverList, boolean hasDebugOption, int interval, String ServerHostName){
 		try {
 			this.clientSocket = socket;
 			this.resources = resources;	
@@ -64,6 +66,7 @@ public class ServerThread extends Thread{
 			this.serverList = serverList;
 			this.hasDebugOption = hasDebugOption;
 			this.interval = interval;
+			this.hostName = ServerHostName;
 			
 			new Timer().scheduleAtFixedRate(new TimerTask() {
 				
@@ -106,9 +109,10 @@ public class ServerThread extends Thread{
 		}
 	}*/
 	public static String[] handleTags(String str){
-		String removeQuote = str.substring(1, str.length()-1);
+		
+		/*String removeQuote = str.substring(1, str.length()-1);*/
+		String removeQuote = str.replaceAll("\\[|\\]", "");
 		String finalStr = removeQuote.replaceAll("\"", "");
-		System.out.println(finalStr);
 		return finalStr.split(",");
 	}
 	
@@ -204,7 +208,7 @@ public class ServerThread extends Thread{
 				String channel_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.channel.name());
 				String owner_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.owner.name());
 				
-				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket);
+				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket, hostName);
 			
 				
 				
@@ -228,7 +232,8 @@ public class ServerThread extends Thread{
 					relay1 = false;
 				}
 				if(relay1==false){
-					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query,
+							uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					if (queryReturn.hasMatch==false) {
 						sendMessage(queryReturn.reponseMessage);
 					}else{
@@ -251,7 +256,7 @@ public class ServerThread extends Thread{
 						}
 					}
 				}else{
-					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					
 					
 					queryData = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList,this.hasDebugOption);
@@ -280,7 +285,7 @@ public class ServerThread extends Thread{
 				sendResponse = ServerHandler.handlingExchange(serverList, serverList_exchange, hostnameList_exchange, portList_exchange);
 				sendMessage(sendResponse);
 				break;
-			default:
+			default:				
 				break;
 			}
 		} catch (ParseException e) {
@@ -297,7 +302,6 @@ public class ServerThread extends Thread{
 		
 		//other servers no response or no match, return local query outcome
 		if(otherResponse == null||otherResponse.hasMatch==false){
-			System.out.println("----------------");
 			if (localReturn.hasMatch==false) {
 				sendMessage(localReturn.reponseMessage);
 			}else{
@@ -463,7 +467,7 @@ public class ServerThread extends Thread{
 	
 	public synchronized void handlingFetch(String name,String[] tags,
 			String description, String uri,String channel, 
-			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket){
+			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket, String hostName){
 		String errorMessage;
 		String response;
 		JSONObject serverResponse = new JSONObject();
@@ -475,7 +479,8 @@ public class ServerThread extends Thread{
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
 		/*String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";*/
-		String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";
+		/*String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";*/
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -554,7 +559,7 @@ public class ServerThread extends Thread{
 							}
 							
 							Integer ezport = serverSocket.getLocalPort();
-							String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+							String ezserver = hostName+":"+ezport.toString();
 							matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 							matchResource.put("resourceSize", file.length());
 							
@@ -580,7 +585,7 @@ public class ServerThread extends Thread{
 									//debug information
 								}
 								if(hasDebugOption){
-								       System.out.print(debugMsg.toJSONString());
+								       System.out.print("SENT: "+debugMsg.toJSONString());
 									}
 								
 								
@@ -593,7 +598,6 @@ public class ServerThread extends Thread{
 									System.out.println(num);
 									output.write(Arrays.copyOf(sendingBuffer, num));
 								}
-								//System.out.println("............");
 								byteFile.close();
 								
 								
