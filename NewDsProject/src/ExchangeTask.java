@@ -12,6 +12,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+/**
+ * This class contain the auto task to be used by timer.
+ * Currently it only contains the task of server interaction(exchange).
+ *
+ */
 public class ExchangeTask extends TimerTask{
 	EZshareServer eZshareServer;
 	public static boolean hasDebugOption;
@@ -22,13 +27,17 @@ public class ExchangeTask extends TimerTask{
 	
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		exchangeWithOtherServer(this.eZshareServer.serverList);
 		System.out.println(this.eZshareServer.serverList.size());
 	}
 
-	
+	/**
+	 * This method takes the work of select a random server from the serverList saved on server,
+	 * then establish connection to that selected server and sent it the serverList
+	 * @param serverList
+	 */
 	public synchronized static void exchangeWithOtherServer(ArrayList<String> serverList){
+		/*when serverList is not empty, convert the serverList into JSON object.*/
 	    if(!serverList.isEmpty()){
 	    		   JSONObject exchangeOutput = new JSONObject();
 	    		   JSONArray serversJSONArray = new JSONArray();
@@ -42,12 +51,14 @@ public class ExchangeTask extends TimerTask{
 		       exchangeOutput.put(ConstantEnum.CommandType.command.name(),"EXCHANGE");
 		       exchangeOutput.put(ConstantEnum.CommandArgument.serverList.name(),serversJSONArray); 
 		       
+		       //randomly select server.
 		       Random randomGenerator = new Random();
 		       int randomIndex = randomGenerator.nextInt(serverList.size());
 		       String[] randomHostnameAndPort = serverList.get(randomIndex).split(":");
 		       String randomHostname = randomHostnameAndPort[0];
 		       int randomPort = Integer.parseInt(randomHostnameAndPort[1]);
 		       
+		       //send the JSON message of serverList to the selected server
 		       try {
 		    	    Socket socket = new Socket(randomHostname,randomPort);
 		    	    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
@@ -57,9 +68,11 @@ public class ExchangeTask extends TimerTask{
 						System.out.println("SENT: "+exchangeOutput.toJSONString());
 					}
 					System.out.println("command sent to server: "+exchangeOutput.toJSONString());
+					/*it's not specified in the instruction if we should handle the exchange messages 
+					from other servers, so we remain the function as a comment below.*/
 					
-					//DataInputStream in = new DataInputStream(socket.getInputStream());
-					/*while(true){
+					/*DataInputStream in = new DataInputStream(socket.getInputStream());
+					while(true){
 						if(in.available()>0){
 							String responseMessage = in.readUTF();							
 							JSONObject jsonObject;
@@ -101,8 +114,7 @@ public class ExchangeTask extends TimerTask{
 				e.printStackTrace();
 			}
 		       
-		      
-				
+		//error message when the serverList on server is empty.
 		 }else{
 			 System.out.println("empty server list");
 		 }
