@@ -22,10 +22,25 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+/**
+ * This class mainly create the message to be returned to client, according to clients' requests.
+ *
+ */
 public class ServerHandler {
 	
 	public Queue<String> clientQueue;
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to publish command.
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param resources
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject handlingPublish(String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner,HashMap<String, Resource> resources){
@@ -101,6 +116,17 @@ public class ServerHandler {
 		return serverResponse;
 	}
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Remove command.
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param resources
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject handlingRemove (String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner,HashMap<String, Resource> resources){
@@ -163,6 +189,19 @@ public class ServerHandler {
 		return serverResponse;	
 	}
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Share command.
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param ClientSecret
+	 * @param ServerSecret
+	 * @param resources
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject HandlingShare (String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner, String ClientSecret, String ServerSecret, HashMap<String, Resource> resources){
@@ -256,7 +295,20 @@ public class ServerHandler {
 		
 	return serverResponse;	}
 	
-	
+	/**
+	 * This method creates the JSON objects to be returned to client, in response to Query command.
+	 * @param name_query
+	 * @param tags_query
+	 * @param description_query
+	 * @param uri_query
+	 * @param channel_query
+	 * @param owner_query
+	 * @param relay
+	 * @param resources
+	 * @param serverSocket
+	 * @param hostName
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static QueryReturn handlingQuery(String name_query,String[] tags_query,
 			String description_query, String uri_query,String channel_query, 
 			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket,String hostName){
@@ -534,6 +586,14 @@ public class ServerHandler {
 		return queryReturn;
 	}
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Exchange command.
+	 * @param serverList
+	 * @param serverList_exchange
+	 * @param hostnameList_exchange
+	 * @param portList_exchange
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject handlingExchange(ArrayList<String> serverList, ArrayList<String>serverList_exchange, 
 			ArrayList<String> hostnameList_exchange, ArrayList<String> portList_exchange){
 			JSONObject serverResponse = new JSONObject();
@@ -568,7 +628,15 @@ public class ServerHandler {
 			
 		}
 	
-	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Query command with Relay field set as TRUE.
+	 * @param inputMessage
+	 * @param resources
+	 * @param serverSocket
+	 * @param serverList
+	 * @param hasDebugOption
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static QueryData handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, 
 			ServerSocket serverSocket, ArrayList<String> serverList, boolean hasDebugOption){
 			JSONObject inputQuerry = new JSONObject();
@@ -591,9 +659,7 @@ public class ServerHandler {
 			inputQuerry.put("channel", "");
 			/*inputQuerry.put("owner", "");*/
 			inputQuerry.put("relay", "false");
-			
-			
-			
+					
 			/**a list to store success information from other servers*/
 			ArrayList<JSONObject> successOutcome = new ArrayList<>();
 			ArrayList<JSONObject> errorOutcome = new ArrayList<>();			
@@ -632,8 +698,6 @@ public class ServerHandler {
 									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
 									System.out.println(arrayList.size());
 									
-								
-								
 							}
 								*/	
 							while(true){
@@ -694,9 +758,6 @@ public class ServerHandler {
 										
 									}*/
 									
-									
-								
-							
 											
 								} catch (Exception e) {
 									
@@ -707,9 +768,6 @@ public class ServerHandler {
 				return otherReturn;
 			}
 	
-	
-	
-	
-	
+
 
 }

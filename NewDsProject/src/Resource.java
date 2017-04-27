@@ -2,10 +2,14 @@ import java.awt.List;
 import java.io.File;
 import java.util.ArrayList;
 
+/**
+ * This class defines the template of resource to be used by other classes.
+ *
+ */
 public class Resource {
 	
 	/**optional user supplied name, default is " " */
-	 String name;
+	String name;
 	
 	/**optional user supplied description, default is " "*/
 	String description;

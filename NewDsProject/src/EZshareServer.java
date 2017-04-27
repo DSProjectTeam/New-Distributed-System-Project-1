@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -11,6 +12,12 @@ import java.io.DataOutputStream;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.RandomStringUtils;
 
+/**
+ * This class contains the main method of the server side.
+ * It defines the basic attributes of the server, set initialization and shutting down of 
+ * server, handles server command and server interaction(server exchange).
+ *
+ */
 public class EZshareServer {
 	static ServerSocket server;
 	
@@ -21,7 +28,6 @@ public class EZshareServer {
 	public ArrayList<String> serverList;
 	public static String commandType;
 	public static boolean hasDebugOption = false;
-	
 	public static String command = "";
 	public static String hostName = "";
 	public static int connectioninterval;
@@ -43,6 +49,10 @@ public class EZshareServer {
 		
 	}
 	
+	/**
+	 * This method handles input commands on server.
+	 * @param args
+	 */
 	public static void handleServerInput(String[] args){
 		/*if (args[0].equals("-advertisedhostname")||args[0].equals("-connectionintervallimit")||
 				args[0].equals("-exchangeinterval")||args[0].equals("-port")||args[0].equals("-secret")
@@ -56,6 +66,7 @@ public class EZshareServer {
     		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
 		}*/
 		
+		//when the input command contains "-debug", handle the args[] to better use options.
 		for(String str: args){
 			if(str.equals("-debug")){
 				hasDebugOption=true;
@@ -69,8 +80,7 @@ public class EZshareServer {
 			}
 		}
 		
-		
-		
+		//define server command options.
 		Options options = new Options();
 		options.addOption("exchangeinterval",true,"input exchange interval"); 
 		options.addOption("advertisedhostname",true, "input host");
@@ -87,7 +97,6 @@ public class EZshareServer {
 	    catch (org.apache.commons.cli.ParseException e) {
 			e.printStackTrace();
 		}
-	    
 	    
 	    if(cmd.hasOption("exchangeinterval")){
 	    	exchangeInterval = Integer.parseInt(cmd.getOptionValue("exchangeinterval"));
@@ -108,6 +117,7 @@ public class EZshareServer {
 	    	hostName = cmd.getOptionValue("advertisedhostname");
 	    }else{
 	    	hostName = "localhost";
+//	    	hostName = InetAddress.getLocalHost();
 	    }
 	    
 	    if(cmd.hasOption("port")){
@@ -124,6 +134,10 @@ public class EZshareServer {
 	    
 	}
 	
+	/**
+	 * The main method to run the server.
+	 * @param args
+	 */
 	public static void main(String[] args){
 		System.out.println("Welcome to the EZShare");
 		handleServerInput(args);
@@ -132,6 +146,9 @@ public class EZshareServer {
 		/*initializeServer(3780);*/
 	}
 	
+	/**
+	 * This method is the finalization of the server.
+	 */
 	protected void finalize() throws Throwable{
 		try {
 				System.out.println("Server shutdown");
@@ -141,6 +158,9 @@ public class EZshareServer {
 		}
 	}
 	
+	/**
+	 * This method is the initialization of the server.
+	 */
 	public static void initializeServer(){
 		try {
 			EZshareServer eZshareServer = new EZshareServer(port);

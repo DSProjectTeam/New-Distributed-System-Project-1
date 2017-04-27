@@ -30,6 +30,11 @@ import java.util.TimerTask;
 import java.util.function.LongBinaryOperator;
 import java.util.logging.Handler;
 
+/**
+ * This class mainly handle the JSON object received from the client.
+ * It parse the message and extract command and its related fields in the message.
+ *
+ */
 public class ServerThread extends Thread{
 	
 	Socket clientSocket;
@@ -116,7 +121,10 @@ public class ServerThread extends Thread{
 		return finalStr.split(",");
 	}
 	
-	
+	/**
+	 * This method recognize the command type and extract information in fields accordingly.
+	 * @param string the JSON message received on socket from client
+	 */
 	public synchronized void handleCommand (String string){
 		JSONParser parser = new JSONParser();
 		JSONObject jsonObject;
@@ -136,7 +144,6 @@ public class ServerThread extends Thread{
 			String command = (String) jsonObject.get(ConstantEnum.CommandType.command.name());
 						switch (command) {
 			case "DEBUG":
-				
 				break;
 			case "PUBLISH":
 				/**取出嵌套在jsonObject中的resource字段（同样也是jsonObjecy）*/
@@ -152,10 +159,8 @@ public class ServerThread extends Thread{
 				String channel = resource_publish.get(ConstantEnum.CommandArgument.channel.name()).toString();
 				String owner = resource_publish.get(ConstantEnum.CommandArgument.owner.name()).toString();
 	
-				
 				sendResponse = ServerHandler.handlingPublish(name,tags,description,uri,channel,owner,this.resources);
 				sendMessage(sendResponse);
-				
 				break;
 			case "REMOVE":
 				JSONObject resource_remove = (JSONObject) jsonObject.get("resource");
@@ -175,11 +180,8 @@ public class ServerThread extends Thread{
 				/**get response with the remove command*/
 				/*sendResponse = ServerHandler.handlingRemove(new Resource(name_remove, tag_remove, description_remove, 
 						uri_remove, channel_remove, owner_remove),this.resources);*/
-				sendResponse = ServerHandler.handlingRemove(name_remove,tags_remove,description_remove,uri_remove,channel_remove,owner_remove,this.resources);
-				
-				
+				sendResponse = ServerHandler.handlingRemove(name_remove,tags_remove,description_remove,uri_remove,channel_remove,owner_remove,this.resources);		
 				sendMessage(sendResponse);
-				
 				break;
 			case "SHARE":
 				JSONObject resource_share = (JSONObject) jsonObject.get("resource");
@@ -209,9 +211,6 @@ public class ServerThread extends Thread{
 				String owner_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.owner.name());
 				
 				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket, hostName);
-			
-				
-				
 				break;
 			case "QUERY":
 				
@@ -264,9 +263,6 @@ public class ServerThread extends Thread{
 				}
 				
 				/*QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);*/
-				
-				
-				
 				break;
 			case "EXCHANGE":
 				JSONArray serverListJSONArray = (JSONArray) jsonObject.get("serverList");// need to deal with "serverList" missing	!
@@ -298,7 +294,6 @@ public class ServerThread extends Thread{
 	public synchronized void handleRelay(QueryData otherResponse,QueryReturn localReturn){
 		ArrayList<JSONObject> mergeList = new ArrayList<>();
 		JSONArray debugMsg = new JSONArray();
-		
 		
 		//other servers no response or no match, return local query outcome
 		if(otherResponse == null||otherResponse.hasMatch==false){
@@ -355,10 +350,7 @@ public class ServerThread extends Thread{
 				} catch (Exception e) {
 					// TODO: handle exception
 				}
-				
-				
-				
-			
+					
 				//local and other both have match
 			}else{
 				int length = otherResponse.outcome.size();
@@ -393,9 +385,6 @@ public class ServerThread extends Thread{
 					if(hasDebugOption){
 						System.out.println("SENT: "+debugMsg.toJSONString());
 					}
-					
-					
-					
 					
 				} catch (Exception e) {
 					// TODO: handle exception
@@ -441,7 +430,10 @@ public class ServerThread extends Thread{
 		
 	}
 	
-	/**send response message from the server*/
+	/**
+	 * This method sends response message from the server to client
+	 * @param message
+	 */
 	public synchronized void sendMessage(JSONObject message){
 		try {
 			
@@ -465,6 +457,18 @@ public class ServerThread extends Thread{
 		return list;
 	}
 	
+	/**
+	 * This method handles fetch command
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param resources
+	 * @param serverSocket
+	 * @param hostName
+	 */
 	public synchronized void handlingFetch(String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket, String hostName){
@@ -588,8 +592,6 @@ public class ServerThread extends Thread{
 								       System.out.print("SENT: "+debugMsg.toJSONString());
 									}
 								
-								
-								
 								// start sending file
 								RandomAccessFile byteFile = new RandomAccessFile(file, "r");
 								byte[] sendingBuffer = new byte[1024*1024];
@@ -599,7 +601,6 @@ public class ServerThread extends Thread{
 									output.write(Arrays.copyOf(sendingBuffer, num));
 								}
 								byteFile.close();
-								
 								
 							} catch (IOException e) {
 								e.printStackTrace();
@@ -647,8 +648,6 @@ public class ServerThread extends Thread{
 
 	}
 	
-	
-	
-	
+
 	
 }
