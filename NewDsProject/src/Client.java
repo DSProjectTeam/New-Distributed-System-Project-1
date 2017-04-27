@@ -77,7 +77,7 @@ public class Client {
 					s.reset();
 					s.start();
 				}
-			}	
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
