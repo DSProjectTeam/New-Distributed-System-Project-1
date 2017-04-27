@@ -1,4 +1,8 @@
-
+/**
+ * This class defines command type-related nouns and command argument-related nouns
+ * to be used in the program.
+ *
+ */
 public class ConstantEnum {
 	
 	public enum CommandType {
