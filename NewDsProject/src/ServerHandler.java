@@ -37,7 +37,9 @@ public class ServerHandler {
 		JSONObject serverResponse = new JSONObject();
 		
 		/**Regexp for filePath*/
-		String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
+		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
+		/*String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";*/
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -48,7 +50,6 @@ public class ServerHandler {
 				invalidTag = true;
 			}
 		}
-		System.out.println("command is oas");
 		boolean invalidResourceValue = Pattern.matches(invalidString, name)||Pattern.matches(invalidString, channel)||
 				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
 				Pattern.matches(invalidString, owner)||invalidTag;
@@ -109,7 +110,7 @@ public class ServerHandler {
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
 		/**Regexp for filePath*/
-		String filePathPattern = "^(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -141,9 +142,9 @@ public class ServerHandler {
 				}else{
 					
 					/**successful remove*/
-					/*if (resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)&&
-							resources.get(uri).channel.equals(channel))*/
-					if (resources.containsKey(uri)) {
+					if (resources.containsKey(uri)&&resources.get(uri).owner.equals(owner)&&
+							resources.get(uri).channel.equals(channel))
+					/*if (resources.containsKey(uri))*/ {
 						response = "success";
 						resources.remove(uri);
 						serverResponse.put(ConstantEnum.CommandType.response.name(), response);
@@ -168,14 +169,15 @@ public class ServerHandler {
 		String errorMessage;
 		String response;
 		Boolean success = false;	
-		System.out.println("hello233!");
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
 		
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
 		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
-		String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";
+		/*String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";*/
+		/*String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";*/
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -257,7 +259,7 @@ public class ServerHandler {
 	
 	public synchronized static QueryReturn handlingQuery(String name_query,String[] tags_query,
 			String description_query, String uri_query,String channel_query, 
-			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket){
+			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket,String hostName){
 		/**用来存放满足template的resource*/
 		ArrayList<Resource> matchResourceSet = new ArrayList<Resource>();
 		String errorMessage;
@@ -270,7 +272,7 @@ public class ServerHandler {
 		
 
 		/**Regexp for filePath*/
-		String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -286,7 +288,7 @@ public class ServerHandler {
 		boolean invalidResourceValue = Pattern.matches(invalidString, name_query)||Pattern.matches(invalidString, channel_query)||
 				Pattern.matches(invalidString, description_query)||Pattern.matches(invalidString, uri_query)||
 				Pattern.matches(invalidString, owner_query)||invalidTag;
-		System.out.println("querying");
+		//System.out.println("querying");
 		
 		boolean hasMacthResource = false;
 		do{
@@ -303,7 +305,7 @@ public class ServerHandler {
 					
 					/** for query like -query with no parameter*/
 					if(channel_query.equals("")&& owner_query.equals("") && uri_query.equals("") && name_query.equals("")
-							&& description_query.equals("")){
+							&& description_query.equals("")&&tags_query[0].equals("")){
 						ArrayList<Resource> allResource = new ArrayList<Resource>();
 						if(!resources.isEmpty()){
 							JSONObject returnSize = new JSONObject();
@@ -337,7 +339,8 @@ public class ServerHandler {
 								}
 								
 								Integer ezport = serverSocket.getLocalPort();
-								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
+								/*String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();*/
+								String ezserver = hostName+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 								
 								/*returnArray1.add(MatchResouce);*/
@@ -375,10 +378,35 @@ public class ServerHandler {
 						
 						boolean tagIncluded;
 						
-						System.out.println("!!!"+tags_query[0]);
-						if(tags_query[0].matches("\\[\\]")){
+						
+						if(tags_query[0].equals("")){
 							tagIncluded = true;
-							System.out.println("---------");
+						}else{
+							if (!resource.tag[0].equals("")) {
+								int tagLength = tags_query.length;
+								int aaa = resource.tag.length;
+								int tagCount=0;
+								for(int i = 0; i<tagLength; i++){
+									for(int j = 0; j<aaa; j++){
+										if(tags_query[i].equals(resource.tag[j])){									
+											tagCount++;
+										}
+									}
+								}
+								if (tagCount==tagLength) {
+									tagIncluded = true;
+								} else {
+									tagIncluded = false;
+								}
+							}else{
+								tagIncluded = true;
+							}
+						}
+						
+						
+						/*if(tags_query[0].matches("\\[\\]")){
+							tagIncluded = true;
+							
 						}else{
 							
 							if(!resource.tag[0].matches("\\[\\]")){
@@ -425,15 +453,15 @@ public class ServerHandler {
 									
 								
 							
-						}
+						}*/
 						
 						
 						//&& tagIncluded
-								
 						if((channelMatch&& tagIncluded&& ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
 								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 								(name_query.equals("")&&description_query.equals(""))))){
 							System.out.println("match");
+							
 							/**将符合要求的资源放在MatchResourceSet里*/
 							matchResourceSet.add(resource);
 						}
@@ -457,7 +485,7 @@ public class ServerHandler {
 								for (String tag: resouce.tag){
 									tagsArray.add(tag);
 								}
-								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);//------------------------------------------
+								MatchResouce.put(ConstantEnum.CommandArgument.tags.name(), tagsArray);
 								MatchResouce.put(ConstantEnum.CommandArgument.description.name(), resouce.description);
 								MatchResouce.put(ConstantEnum.CommandArgument.uri.name(), resouce.URI);
 								MatchResouce.put(ConstantEnum.CommandArgument.channel.name(), resouce.channel);
@@ -471,7 +499,7 @@ public class ServerHandler {
 								
 								Integer ezport = serverSocket.getLocalPort();
 	
-								String ezserver = serverSocket.getInetAddress().toString()+":"+ezport.toString();
+								String ezserver = hostName+":"+ezport.toString();
 								MatchResouce.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 								
 								/*returnArray1.add(MatchResouce);*/
@@ -487,10 +515,9 @@ public class ServerHandler {
 							queryReturn = new QueryReturn(returnList);
 							
 							hasMacthResource = true;
-						}else{
-							errorMessage = "invalid resourceTemplate";
+						}else{							
+							errorMessage = "missing resourceTemplate";
 							response = "error";
-							System.out.println("dididi");
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 							queryReturn = new QueryReturn(serverResponse);
@@ -512,8 +539,16 @@ public class ServerHandler {
 			JSONObject serverResponse = new JSONObject();
 			String response;
 			String errorMessage;
-			String hostnamePattern = "((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)";
+			//in fact, the hostnamePattern cannot find the error in ip format like 999.1234.999.1, because the pattern must fit hostname format.
+			String hostnamePattern = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
 			String portPattern = "^([0-5]?\\d?\\d?\\d?\\d|6[0-4]\\d\\d\\d|65[0-4]\\d\\d|655[0-2]\\d|6553[0-5])$";
+			if(serverList_exchange.size()==0){
+				response="error";
+				errorMessage = "missing or invalid server list";	
+				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
+				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+				return serverResponse;
+			}
 			for(int i=0; i<serverList_exchange.size(); i++){
 				if(!(Pattern.matches(hostnamePattern,hostnameList_exchange.get(i))
 						&&Pattern.matches(portPattern, portList_exchange.get(i)))){//doesn't fits rexp
@@ -534,11 +569,14 @@ public class ServerHandler {
 		}
 	
 	
-	public synchronized static QueryData handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, ServerSocket serverSocket, ArrayList<String> serverList){
+	public synchronized static QueryData handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, 
+			ServerSocket serverSocket, ArrayList<String> serverList, boolean hasDebugOption){
 			JSONObject inputQuerry = new JSONObject();
 			ArrayList<JSONObject> arrayList = new ArrayList<>();
-			QueryData otherReturn = new QueryData();	
+			QueryData otherReturn = new QueryData();
 			
+			int totalOtehrResSize = 0;
+			boolean hasMatchServer = false;
 			/**parse input query from the client*/
 			try {
 				JSONParser parser = new JSONParser();
@@ -549,9 +587,10 @@ public class ServerHandler {
 			}
 			
 			/**replace owner, channel with"" and set relay with true, then forward query*/
-			inputQuerry.put("owner", "");
+			
 			inputQuerry.put("channel", "");
-			inputQuerry.put("relay", false);
+			/*inputQuerry.put("owner", "");*/
+			inputQuerry.put("relay", "false");
 			
 			
 			
@@ -570,9 +609,11 @@ public class ServerHandler {
 							Socket otherServer = new Socket(tempIp, tempPort);
 							DataInputStream inputStream = new DataInputStream(otherServer.getInputStream());
 							DataOutputStream outputStream = new DataOutputStream(otherServer.getOutputStream());
-							System.out.println(inputQuerry.toJSONString());
 							outputStream.writeUTF(inputQuerry.toJSONString());
 							outputStream.flush();
+							if(hasDebugOption){
+								System.out.println("SENT: "+inputQuerry.toJSONString());
+							}
 							System.out.println("query sent to other server");
 							
 						/*测试了一下，好像每个包过来，available()从一个值变为0，然后下一个包过来，又从一个值变为0，断断续续的变化。*/
@@ -611,11 +652,32 @@ public class ServerHandler {
 										break;
 									}
 								}
-							}System.out.println(arrayList.size());
-							   
-								
-									if (arrayList.get(0).get("response").equals("success")) {
+							}
+							
+								if (arrayList.get(0).get("response").equals("success")) {
+									hasMatchServer =true;
+									int size = arrayList.size();
+									totalOtehrResSize = totalOtehrResSize+size;
+									
+									for(int i =1; i<size-1;i++){
+										successOutcome.add(arrayList.get(i));
+										
+									}
+									otherReturn = new QueryData(true, successOutcome);
+									
+									
+								}else{
+									int size = arrayList.size();
+									for(int i = 0;i<size;i++){
+										errorOutcome.add(arrayList.get(i));
+									}
+									otherReturn = new QueryData(false, errorOutcome);
+									
+								}	
+									
+									/*if (arrayList.get(0).get("response").equals("success")) {
 										int size = arrayList.size();
+										totalOtehrResSize = totalOtehrResSize+size;
 										for(int i =0; i<size;i++){
 											successOutcome.add(arrayList.get(i));
 											
@@ -630,7 +692,7 @@ public class ServerHandler {
 										}
 										otherReturn = new QueryData(false, errorOutcome);
 										
-									}
+									}*/
 									
 									
 								

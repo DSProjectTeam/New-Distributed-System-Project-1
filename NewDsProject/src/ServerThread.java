@@ -25,6 +25,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.json.simple.JSONArray;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.function.LongBinaryOperator;
+import java.util.logging.Handler;
 
 public class ServerThread extends Thread{
 	
@@ -44,7 +48,14 @@ public class ServerThread extends Thread{
 	
 	public FetchResult fetchResult;
 	
-	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket, ArrayList<String> serverList){
+	public static boolean hasDebugOption;
+	
+	public static String hostName;
+	
+	public int interval;
+	
+	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket,
+			ArrayList<String> serverList, boolean hasDebugOption, int interval, String ServerHostName){
 		try {
 			this.clientSocket = socket;
 			this.resources = resources;	
@@ -53,6 +64,26 @@ public class ServerThread extends Thread{
 			this.input = new DataInputStream(clientSocket.getInputStream());
 			this.serverSocket = serverSocket;
 			this.serverList = serverList;
+			this.hasDebugOption = hasDebugOption;
+			this.interval = interval;
+			this.hostName = ServerHostName;
+			
+			new Timer().scheduleAtFixedRate(new TimerTask() {
+				
+				@Override
+				public void run() {
+					try {
+						String inputMessage = input.readUTF();
+						handleCommand(inputMessage);
+						
+						
+					} catch (Exception e) {
+						// TODO: handle exception
+					}
+					
+				}
+			}, 0, interval);
+			
 		} catch (IOException e) {
 			if(clientSocket!=null){
 				try {
@@ -64,18 +95,27 @@ public class ServerThread extends Thread{
 		}
 	}
 	
-	@Override
+	
+	
+	/*@Override
 	public void run() {
 		try {
 			String inputMessage = input.readUTF();
-			System.out.println("123");
 			handleCommand(inputMessage);
 			
 			
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
+	}*/
+	public static String[] handleTags(String str){
+		
+		/*String removeQuote = str.substring(1, str.length()-1);*/
+		String removeQuote = str.replaceAll("\\[|\\]", "");
+		String finalStr = removeQuote.replaceAll("\"", "");
+		return finalStr.split(",");
 	}
+	
 	
 	public synchronized void handleCommand (String string){
 		JSONParser parser = new JSONParser();
@@ -86,9 +126,14 @@ public class ServerThread extends Thread{
 		QueryData queryData;
 		try {
 			jsonObject = (JSONObject) parser.parse(string);
+			
+			//print debug information
+			if(hasDebugOption){
+			       System.out.println("RECEIVED: "+jsonObject.toJSONString());
+				}
+			
 			/*ConstantEnum.CommandType command  = ConstantEnum.CommandType.valueOf((String)jsonObject.get("command"));*/
 			String command = (String) jsonObject.get(ConstantEnum.CommandType.command.name());
-			System.out.println("456");
 						switch (command) {
 			case "DEBUG":
 				
@@ -96,12 +141,12 @@ public class ServerThread extends Thread{
 			case "PUBLISH":
 				/**取出嵌套在jsonObject中的resource字段（同样也是jsonObjecy）*/
 				JSONObject resource_publish = (JSONObject) jsonObject.get("resource");
-				System.out.println(resource_publish.toJSONString());
+				//System.out.println(resource_publish.toJSONString());
 				
-				String [] tags = resource_publish.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String[] tags = handleTags(resource_publish.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				ArrayList<String> tag = tagTolist(tags);
 				String name = resource_publish.get(ConstantEnum.CommandArgument.name.name()).toString();
-				System.out.println(name.length()+" "+name);
+				//System.out.println(name.length()+" "+name);
 				String description = resource_publish.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri = resource_publish.get(ConstantEnum.CommandArgument.uri.name()).toString();
 				String channel = resource_publish.get(ConstantEnum.CommandArgument.channel.name()).toString();
@@ -115,7 +160,7 @@ public class ServerThread extends Thread{
 			case "REMOVE":
 				JSONObject resource_remove = (JSONObject) jsonObject.get("resource");
 				
-				String [] tags_remove = resource_remove.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_remove = handleTags(resource_remove.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_remove = resource_remove.get(ConstantEnum.CommandArgument.name.name()).toString();
 				
 				String description_remove = resource_remove.get(ConstantEnum.CommandArgument.description.name()).toString();
@@ -138,8 +183,7 @@ public class ServerThread extends Thread{
 				break;
 			case "SHARE":
 				JSONObject resource_share = (JSONObject) jsonObject.get("resource");
-				System.out.println("sharing!");
-				String [] tags_share = resource_share.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_share = handleTags(resource_share.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_share = resource_share.get(ConstantEnum.CommandArgument.name.name()).toString();
 				String description_share = resource_share.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri_share = resource_share.get(ConstantEnum.CommandArgument.uri.name()).toString();
@@ -147,7 +191,6 @@ public class ServerThread extends Thread{
 				String owner_share = resource_share.get(ConstantEnum.CommandArgument.owner.name()).toString();
 				String secret_share = jsonObject.get(ConstantEnum.CommandArgument.secret.name()).toString();
 				
-				System.out.println("7");
 				//EZserver is not here!
 				
 				/**get response with the share command*/					
@@ -158,14 +201,14 @@ public class ServerThread extends Thread{
 			case "FETCH":
 				JSONObject fecthTemplate = (JSONObject) jsonObject.get("resourceTemplate");
 				
-				String [] tags_fetch = (String[]) fecthTemplate.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_fetch = handleTags(fecthTemplate.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.name.name());
 				String description_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.description.name());
 				String uri_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.uri.name());
 				String channel_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.channel.name());
 				String owner_fetch = (String) fecthTemplate.get(ConstantEnum.CommandArgument.owner.name());
 				
-				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket);
+				handlingFetch(name_fetch, tags_fetch, description_fetch, uri_fetch, channel_fetch, owner_fetch, resources, serverSocket, hostName);
 			
 				
 				
@@ -173,9 +216,10 @@ public class ServerThread extends Thread{
 			case "QUERY":
 				
 				JSONObject template_resource = (JSONObject)jsonObject.get("resourceTemplate");
+				JSONArray debugMsg = new JSONArray();
 				boolean relay1;
 				
-				String [] tags_query = template_resource.get(ConstantEnum.CommandArgument.tags.name()).toString().split(",");
+				String [] tags_query = handleTags(template_resource.get(ConstantEnum.CommandArgument.tags.name()).toString());
 				String name_query = template_resource.get(ConstantEnum.CommandArgument.name.name()).toString();
 				String description_query = template_resource.get(ConstantEnum.CommandArgument.description.name()).toString();
 				String uri_query = template_resource.get(ConstantEnum.CommandArgument.uri.name()).toString();
@@ -188,7 +232,8 @@ public class ServerThread extends Thread{
 					relay1 = false;
 				}
 				if(relay1==false){
-					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query,
+							uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					if (queryReturn.hasMatch==false) {
 						sendMessage(queryReturn.reponseMessage);
 					}else{
@@ -196,21 +241,25 @@ public class ServerThread extends Thread{
 							int length = queryReturn.returnList.size();
 							for(int i=0;i<length;i++){
 								output.writeUTF(queryReturn.returnList.get(i).toString());
+								debugMsg.add(queryReturn.returnList.get(i));
 							}
 							
 							/*output.writeUTF(queryReturn.returnArray.toString());*/
 							output.flush();
-							System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
+							if(hasDebugOption){
+								System.out.println("SENT: "+debugMsg.toJSONString());
+							}
+							/*System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");*/
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							System.err.println(Thread.currentThread().getName() + ":Error while sending");
 						}
 					}
 				}else{
-					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket);
+					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					
 					
-					queryData = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList);
+					queryData = ServerHandler.handlingQueryWithRelay(string, this.resources, this.serverSocket, this.serverList,this.hasDebugOption);
 					handleRelay(queryData, localReturn);
 				}
 				
@@ -236,7 +285,7 @@ public class ServerThread extends Thread{
 				sendResponse = ServerHandler.handlingExchange(serverList, serverList_exchange, hostnameList_exchange, portList_exchange);
 				sendMessage(sendResponse);
 				break;
-			default:
+			default:				
 				break;
 			}
 		} catch (ParseException e) {
@@ -248,21 +297,29 @@ public class ServerThread extends Thread{
 	
 	public synchronized void handleRelay(QueryData otherResponse,QueryReturn localReturn){
 		ArrayList<JSONObject> mergeList = new ArrayList<>();
+		JSONArray debugMsg = new JSONArray();
+		
+		
 		//other servers no response or no match, return local query outcome
 		if(otherResponse == null||otherResponse.hasMatch==false){
-			System.out.println("----------------");
 			if (localReturn.hasMatch==false) {
 				sendMessage(localReturn.reponseMessage);
 			}else{
 				try {
 					int length = localReturn.returnList.size();
+					
 					for(int i=0;i<length;i++){
 						output.writeUTF(localReturn.returnList.get(i).toString());
+						
+						debugMsg.add(localReturn.returnList.get(i));					
 					}
 					
 					/*output.writeUTF(queryReturn.returnArray.toString());*/
 					output.flush();
-					System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");
+					if (hasDebugOption) {
+						System.out.print("SENT: "+debugMsg.toJSONString());
+					}
+					/*System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");*/
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					System.err.println(Thread.currentThread().getName() + ":Error while sending");
@@ -274,18 +331,78 @@ public class ServerThread extends Thread{
 			//local query error, return other server response
 			if(localReturn.hasMatch==false){
 				int length = otherResponse.outcome.size();
-				for(int i=0;i<length;i++){
-					try {
+				try {
+					JSONObject successMsg = new JSONObject();
+					successMsg.put("success", "success");
+					
+					output.writeUTF(successMsg.toJSONString());
+					debugMsg.add(successMsg);
+					
+					for(int i=0;i<length;i++){
 						output.writeUTF(otherResponse.outcome.get(i).toJSONString());
 						output.flush();
-					} catch (Exception e) {
-						e.printStackTrace();
+						debugMsg.add(otherResponse.outcome.get(i));
 					}
+					
+					JSONObject returnSize = new JSONObject();
+					returnSize.put("resultSize", length);
+					debugMsg.add(returnSize);
+					output.writeUTF(returnSize.toJSONString());
+					if (hasDebugOption) {
+						System.out.print("SENT: "+debugMsg.toJSONString());
+					}
+					
+				} catch (Exception e) {
+					// TODO: handle exception
 				}
+				
+				
+				
 			
 				//local and other both have match
 			}else{
 				int length = otherResponse.outcome.size();
+				
+				JSONObject successMsg = new JSONObject();
+				successMsg.put("response", "success");
+				try {
+					output.writeUTF(successMsg.toJSONString());
+					
+					debugMsg.add(successMsg);
+					
+					for(int i=0;i<length;i++){
+						output.writeUTF(otherResponse.outcome.get(i).toJSONString());
+						output.flush();
+						debugMsg.add(otherResponse.outcome.get(i));
+					}
+					
+					int length2 = localReturn.returnList.size();
+					for(int i=1;i<length2-1;i++){
+						output.writeUTF(localReturn.returnList.get(i).toString());
+						output.flush();		
+						debugMsg.add(localReturn.returnList.get(i));
+						
+					}
+					
+					int totalLength = length+length2-2;
+					JSONObject jsonObject = new JSONObject();
+					jsonObject.put("resultSize", totalLength);
+					output.writeUTF(jsonObject.toJSONString());
+					output.flush();
+					debugMsg.add(jsonObject);
+					if(hasDebugOption){
+						System.out.println("SENT: "+debugMsg.toJSONString());
+					}
+					
+					
+					
+					
+				} catch (Exception e) {
+					// TODO: handle exception
+				}
+				
+				/*int length = otherResponse.outcome.size();
+				
 				for(int i=0;i<length-1;i++){
 					try {
 						output.writeUTF(otherResponse.outcome.get(i).toJSONString());
@@ -316,7 +433,7 @@ public class ServerThread extends Thread{
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
+				}*/
 				
 				
 			}
@@ -327,8 +444,12 @@ public class ServerThread extends Thread{
 	/**send response message from the server*/
 	public synchronized void sendMessage(JSONObject message){
 		try {
+			
 			output.writeUTF(message.toJSONString());
 			output.flush();
+			if(hasDebugOption){
+			       System.out.println("SENT: "+message.toJSONString());
+				}
 			System.out.println(Thread.currentThread().getName()+":sending response message!");
 			
 		} catch (IOException e) {
@@ -346,17 +467,20 @@ public class ServerThread extends Thread{
 	
 	public synchronized void handlingFetch(String name,String[] tags,
 			String description, String uri,String channel, 
-			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket){
+			String owner,HashMap<String, Resource> resources, ServerSocket serverSocket, String hostName){
 		String errorMessage;
 		String response;
 		JSONObject serverResponse = new JSONObject();
+		JSONArray debugMsg = new JSONArray();
 		
 		/**a fetchResult store the server response and file data if fetch template is matched*/
 		FetchResult fetchResult = new FetchResult();
 		
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
-		String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";
+		/*String filePathPattern = "(\\w+\\/)|(\\w+\\\\)";*/
+		/*String filePathPattern = "(\\w+\\/\\w+.\\w+)|(\\w+\\\\\\w+.\\w+)";*/
+		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
 		
@@ -377,24 +501,26 @@ public class ServerThread extends Thread{
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-				try {
+				/*try {
 					this.output.writeUTF(serverResponse.toJSONString());
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
+				}*/
+				sendMessage(serverResponse);
 			}else{
 				if(uri.equals("") || !Pattern.matches(filePathPattern,uri)){
 					errorMessage = "missing resourceTemplate";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-					try {
+					/*try {
 						this.output.writeUTF(serverResponse.toJSONString());
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					}
+					}*/
+					sendMessage(serverResponse);
 				}else{
 					boolean hasMacthResource = false;
 					/*hasMacthResource = resources.get("uri").equals(uri)&&resources.get("channel").equals(channel);*/
@@ -402,10 +528,11 @@ public class ServerThread extends Thread{
 					
 					if (hasMacthResource) {
 						String fileName = resources.get(uri).name;
-						File file = new File(uri+fileName);
+						/*File file = new File(uri+fileName);*/
+						File file = new File(uri);
 						
 						if(file.exists()){
-							System.out.println("file exists!");
+							/*System.out.println("file exists!");*/
 							JSONObject matchResource = new JSONObject();
 							JSONArray jsonArray = new JSONArray();		
 							
@@ -432,7 +559,7 @@ public class ServerThread extends Thread{
 							}
 							
 							Integer ezport = serverSocket.getLocalPort();
-							String ezserver = serverSocket.getLocalSocketAddress().toString()+":"+ezport.toString();
+							String ezserver = hostName+":"+ezport.toString();
 							matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 							matchResource.put("resourceSize", file.length());
 							
@@ -449,10 +576,18 @@ public class ServerThread extends Thread{
 								for(int i =0;i<length;i++){
 									output.writeUTF(jsonArray.get(i).toString());
 								}*/
+								//debug information
+								
 								for(JSONObject object:map){
 									output.writeUTF(object.toJSONString());
 									output.flush();
+									debugMsg.add(object);
+									//debug information
 								}
+								if(hasDebugOption){
+								       System.out.print("SENT: "+debugMsg.toJSONString());
+									}
+								
 								
 								
 								// start sending file
@@ -463,7 +598,6 @@ public class ServerThread extends Thread{
 									System.out.println(num);
 									output.write(Arrays.copyOf(sendingBuffer, num));
 								}
-								System.out.println("............");
 								byteFile.close();
 								
 								
@@ -476,12 +610,16 @@ public class ServerThread extends Thread{
 							response = "error";
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-							try {
+							/*try {
+								if(hasDebugOption){
+								       System.out.println("SENT: "+serverResponse.toJSONString());
+									}
 								this.output.writeUTF(serverResponse.toJSONString());
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
-							}
+							}*/
+							sendMessage(serverResponse);
 						}
 						
 					}else{
@@ -490,12 +628,16 @@ public class ServerThread extends Thread{
 						response = "error";
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-						try {
+						/*try {
+							if(hasDebugOption){
+							       System.out.println("SENT: "+serverResponse.toJSONString());
+								}
 							this.output.writeUTF(serverResponse.toJSONString());
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
+						}*/
+						sendMessage(serverResponse);
 					}
 					
 				}
