@@ -11,7 +11,7 @@ public class Resource {
 	String description;
 	
 	/**optional user supplied list of tag, default is empty list */
-	ArrayList<String> tag;
+	String[] tag;
 	
 	/**mandatory user supplied absolute URI */ 
 	String URI;
@@ -34,7 +34,7 @@ public class Resource {
 	public Resource(String uri){
 		this.name = "";
 		this.description = "";
-		this.tag = new ArrayList<String>();
+		/*this.tag = new String[];*/
 		this.URI = uri;
 		this.channel = "";
 		this.owner = "";
@@ -42,7 +42,7 @@ public class Resource {
 		this.file = new resourceFile(uri);
 	}
 	
-	public Resource(String name, ArrayList<String> tag, String description, String uri,
+	public Resource(String name, String[] tag, String description, String uri,
 			String channel, String owner){
 		this.name = name;
 		this.description = description;
@@ -62,8 +62,4 @@ public class Resource {
 		this.channel = channel;
 	}
 	
-	
-	
-	
- 
 }
