@@ -1,14 +1,9 @@
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,6 +71,7 @@ public class ServerHandler {
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
+				/**Use URI class method to authenticate input URI*/
 				try {
 					URI inputUri = new URI(uri);
 					if (inputUri.isAbsolute()&&!inputUri.getScheme().equals("file")) {
@@ -487,7 +483,7 @@ public class ServerHandler {
 								(name_query.equals("")&&description_query.equals(""))))){
 							System.out.println("match");
 							
-							/**将符合要求的资源放在MatchResourceSet里*/
+							/**put the match results into the MatchResourceSet*/
 							matchResourceSet.add(resource);
 						}
 						
@@ -615,7 +611,6 @@ public class ServerHandler {
 			JSONObject inputQuerry = new JSONObject();
 			ArrayList<JSONObject> arrayList = new ArrayList<>();
 			QueryData otherReturn = new QueryData();
-			
 			int totalOtehrResSize = 0;
 			boolean hasMatchServer = false;
 			/**parse input query from the client*/
@@ -654,25 +649,7 @@ public class ServerHandler {
 								System.out.println("SENT: "+inputQuerry.toJSONString());
 							}
 							System.out.println("query sent to other server");
-							
-						/*测试了一下，好像每个包过来，available()从一个值变为0，然后下一个包过来，又从一个值变为0，断断续续的变化。*/
-							/*String otherServerResponse = null;
-							while(( otherServerResponse = inputStream.readUTF())!=null){
-								
-									System.out.println(inputStream.available());
-									String otherServerResponse = inputStream.readUTF();
-									JSONParser parser2 = new JSONParser();
-									
-									JSONObject otherResponse = new JSONObject();
-									otherResponse = (JSONObject)parser2.parse(otherServerResponse);
-									System.out.println(otherResponse.toJSONString());
-									JSONArray  jsonArray = new JSONArray();
-									
-									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
-									System.out.println(arrayList.size());
-									
-							}
-								*/	
+						
 							while(true){
 								if(inputStream.available()>0){
 									String otherServerResponse = inputStream.readUTF();
@@ -711,25 +688,6 @@ public class ServerHandler {
 									otherReturn = new QueryData(false, errorOutcome);
 									
 								}	
-									
-									/*if (arrayList.get(0).get("response").equals("success")) {
-										int size = arrayList.size();
-										totalOtehrResSize = totalOtehrResSize+size;
-										for(int i =0; i<size;i++){
-											successOutcome.add(arrayList.get(i));
-											
-										}
-										otherReturn = new QueryData(true, successOutcome);
-										
-										
-									}else{
-										int size = arrayList.size();
-										for(int i = 0;i<size;i++){
-											errorOutcome.add(arrayList.get(i));
-										}
-										otherReturn = new QueryData(false, errorOutcome);
-										
-									}*/
 									
 											
 								} catch (Exception e) {
