@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,8 +48,8 @@ public class ServerHandler {
 			String owner,HashMap<String, Resource> resources){
 		String errorMessage;
 		String response;
-		Boolean success = false;	
-		
+		Boolean validUri;
+			
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
 		
@@ -57,7 +59,6 @@ public class ServerHandler {
 		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
-		
 		/**invalid resource contains whitespace or /o */
 		boolean invalidTag = false;
 		for(String str: tags){
@@ -69,16 +70,30 @@ public class ServerHandler {
 				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
 				Pattern.matches(invalidString, owner)||invalidTag;
 		do{
-			if (invalidResourceValue|| owner.equals("*")) {
-				errorMessage = "invalid resource";
+			if (uri.equals("")) {
+				errorMessage = "missing resource";
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
+				try {
+					URI inputUri = new URI(uri);
+					if (inputUri.isAbsolute()&&!inputUri.getScheme().equals("file")) {
+						validUri = true;
+						System.out.println(inputUri.isAbsolute()+inputUri.getScheme());
+					}else{
+						validUri = false;
+						System.out.println(inputUri.getScheme());
+					}
+				} catch (URISyntaxException e) {
+					validUri = false;
+					System.out.println("invalid uri");
+				}
 				/**resource field not given or uri is not file scheme*/
-				if(uri.equals("") || Pattern.matches(filePathPattern, uri)){
-					errorMessage = "missing resource";
+				if(invalidResourceValue|| owner.equals("*")||!validUri){
+					errorMessage = "invalid resource";
 					response = "error";
+					System.out.println(invalidResourceValue+"  "+owner.equals("*")+"  "+validUri);
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 					
@@ -97,7 +112,6 @@ public class ServerHandler {
 								Resource resource = new Resource(name, tags, description, uri, channel, owner);
 								resources.put(resource.URI, resource);
 								response = "success";
-								success = true;
 								serverResponse.put(ConstantEnum.CommandType.response.name(),response);	
 						}
 					}else{
@@ -105,7 +119,6 @@ public class ServerHandler {
 						Resource resource = new Resource(name, tags, description, uri, channel, owner);
 						resources.put(uri,resource);
 						response = "success";
-						success= true;
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);				
 					}
 				}
@@ -210,7 +223,7 @@ public class ServerHandler {
 		Boolean success = false;	
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
-		
+		boolean validUri;
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
 		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
@@ -233,7 +246,7 @@ public class ServerHandler {
 		
 		/** resource or secret field was not given or not of the correct type*/
 		do {
-			if(ClientSecret.equals("") || uri.equals("") || !Pattern.matches(filePathPattern, uri)){
+			if(ClientSecret.equals("") || uri.equals("")){
 				response = "error";
 				errorMessage = "missing resource and\\/or secret";
 				serverResponse.put(ConstantEnum.CommandType.response.name(), response);
@@ -248,7 +261,21 @@ public class ServerHandler {
 					serverResponse.put(ConstantEnum.CommandType.response.name(), response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 				}else{
-					if (invalidResourceValue||owner.equals("*")) {
+					try {
+						URI inputUri = new URI(uri);
+						if (inputUri.isAbsolute()&&inputUri.getScheme().equals("file")) {
+							validUri = true;
+							System.out.println(inputUri.isAbsolute()+inputUri.getScheme());
+						}else{
+							validUri = false;
+							System.out.println(inputUri.getScheme());
+						}
+					} catch (URISyntaxException e) {
+						validUri = false;
+						System.out.println("invalid uri");
+					}
+					
+					if (invalidResourceValue||owner.equals("*")||!validUri) {
 						
 						/** resource contained incorrect information that could not be recovered from*/
 						errorMessage = "invalid resource";
@@ -455,60 +482,6 @@ public class ServerHandler {
 							}
 						}
 						
-						
-						/*if(tags_query[0].matches("\\[\\]")){
-							tagIncluded = true;
-							
-						}else{
-							
-							if(!resource.tag[0].matches("\\[\\]")){
-								int tagLength = tags_query.length;
-								int aaa=resource.tag.length;
-								int tagCount  = 0;
-								
-								for(int i =0;i<tagLength;i++){
-									System.out.println(tags_query[i]);
-								}
-								
-								String[] tagInput = new String[tagLength];
-								for(int i =0;i<tagLength;i++){
-									tagInput[i] = tags_query[i].replaceAll("(\\[)|(\\])", "");
-								}
-								
-								String[] tagCandidate = new String[aaa];
-								
-								for(int i =0;i<aaa;i++){
-									
-									tagCandidate[i] = resource.tag[i].replaceAll("(\\[)|(\\])", "");
-								}
-								
-		
-								
-								for(int i = 0; i<tagLength; i++){
-									for(int j = 0; j<aaa; j++){
-										if(tagInput[i].equals(tagCandidate[j])){
-											System.out.println(tagInput[i]);
-											System.out.println(tagCandidate[i]);
-											tagCount++;
-										}
-									}
-								}
-								if (tagCount==tagLength) {
-									tagIncluded = true;
-								} else {
-									tagIncluded = false;
-								}
-							}else{
-								tagIncluded = true;
-							}
-							
-									
-								
-							
-						}*/
-						
-						
-						//&& tagIncluded
 						if((channelMatch&& tagIncluded&& ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
 								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 								(name_query.equals("")&&description_query.equals(""))))){
