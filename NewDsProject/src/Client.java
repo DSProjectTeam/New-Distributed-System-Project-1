@@ -33,9 +33,9 @@ import com.google.gson.JsonParser;
  */
 public class Client {
 	//for convenience, ip address is also shown as "host" here.
-	public static String host = "sunrise.cis.unimelb.edu.au";
+//	public static String host = "sunrise.cis.unimelb.edu.au";
 	public static String host2 = "localhost";
-//	public static String host = "10.12.152.76";
+	public static String host = "10.12.187.20";
 	public static int port = 3780;
 	public static String commandType;
 	public static boolean hasDebugOption;
@@ -51,7 +51,7 @@ public class Client {
 			JSONObject userInput = handleClientInput(args);
 			StopWatch s = new StopWatch();
 			//set socket to connect to.
-			Socket socket = new Socket(host2,port);
+			Socket socket = new Socket(host,port);
 			
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			out.writeUTF(userInput.toJSONString());
@@ -91,26 +91,29 @@ public class Client {
 	 * @return The JSONObeject
 	 */
 	public static JSONObject handleClientInput(String[] args){
-		
-		if (args[0].equals("-publish")||args[0].equals("-remove")||args[0].equals("-share")||
-				args[0].equals("-query")||args[0].equals("-fetch")||args[0].equals("-exchange")){
-			//extract the command type, so we still remember the command type when handling response.
-			commandType = args[0];
-			//insert "-command" at args[0] for better use options
-	    		String[] argsWithCommand = new String[args.length+1];
-	    		argsWithCommand[0] = "-command";
-	    		System.arraycopy(args, 0, argsWithCommand, 1, args.length);
-	    		
-	    		args = new String [args.length+1];
-	    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
+		for(int i=0;i<args.length;i++){
+			if (args[i].equals("-publish")||args[i].equals("-remove")||args[i].equals("-share")||
+					args[i].equals("-query")||args[i].equals("-fetch")||args[i].equals("-exchange")){
+				//extract the command type, so we still remember the command type when handling response.
+				commandType = args[i];
+				//insert "-command" at args[i] for better use options
+		    		String[] argsWithCommand = new String[args.length+1];
+		    		argsWithCommand[i] = "-command";
+		    		System.arraycopy(args, 0, argsWithCommand, 0, i);
+		    		System.arraycopy(args, i, argsWithCommand, i+1, args.length-i);
+		    		args = new String [args.length+1];
+		    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
+		    		break;
+			}
 		}
 		//if input contain "-debug", modify the args[] to better use options
-		for(String str: args){
-			if(str.equals("-debug")){
+		for(int i=0;i<args.length;i++){
+			if(args[i].equals("-debug")){
 			hasDebugOption=true;
 	    		String[] argsWithDebug = new String[args.length+1];
-	    		argsWithDebug[argsWithDebug.length-1] = "";
-	    		System.arraycopy(args, 0, argsWithDebug, 0, args.length);
+	    		argsWithDebug[i+1] = "";
+	    		System.arraycopy(args, 0, argsWithDebug, 0, i+1);
+	    		System.arraycopy(args, i+1, argsWithDebug, i+2, args.length-1-i);
 	    		args = new String [args.length+1];
 	    		System.arraycopy(argsWithDebug, 0, args, 0, argsWithDebug.length);
 	    		break;
