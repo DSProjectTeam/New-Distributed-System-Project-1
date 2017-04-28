@@ -230,8 +230,10 @@ public class ServerThread extends Thread{
 				if(relay.equals("")){
 					relay1 = true;
 				}else{
-					relay1 = false;
+					relay1 = Boolean.parseBoolean(relay);
 				}
+				
+				/**just query local resources*/
 				if(relay1==false){
 					QueryReturn queryReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query,
 							uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
@@ -256,6 +258,8 @@ public class ServerThread extends Thread{
 							System.err.println(Thread.currentThread().getName() + ":Error while sending");
 						}
 					}
+					
+					/**relay field is true, handle both local query and query with other server in the server list*/
 				}else{
 					QueryReturn localReturn = ServerHandler.handlingQuery(name_query, tags_query, description_query, uri_query, channel_query, owner_query,relay1,this.resources, this.serverSocket,this.hostName);
 					
@@ -293,6 +297,12 @@ public class ServerThread extends Thread{
 		
 	}
 	
+	/**
+	 * This method handle both local query outcomes and other servers' query outcomes,
+	 * then merge local and both outcomes and send back to the client
+	 * @param QueryData
+	 * @param QueryReturn
+	 */
 	public synchronized void handleRelay(QueryData otherResponse,QueryReturn localReturn){
 		ArrayList<JSONObject> mergeList = new ArrayList<>();
 		JSONArray debugMsg = new JSONArray();
@@ -350,7 +360,7 @@ public class ServerThread extends Thread{
 					}
 					
 				} catch (Exception e) {
-					// TODO: handle exception
+					
 				}
 					
 				//local and other both have match
@@ -391,41 +401,6 @@ public class ServerThread extends Thread{
 				} catch (Exception e) {
 					// TODO: handle exception
 				}
-				
-				/*int length = otherResponse.outcome.size();
-				
-				for(int i=0;i<length-1;i++){
-					try {
-						output.writeUTF(otherResponse.outcome.get(i).toJSONString());
-						output.flush();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-				
-				int length2 = localReturn.returnList.size();
-				for(int i=1;i<length2-1;i++){
-					try {
-						output.writeUTF(localReturn.returnList.get(i).toString());
-						output.flush();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				
-				int totalLength = length+length2-4;
-				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("resultSize", totalLength);
-				
-				try {
-					output.writeUTF(jsonObject.toJSONString());
-					output.flush();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}*/
-				
 				
 			}
 		}

@@ -55,17 +55,6 @@ public class EZshareServer {
 	 * @param args
 	 */
 	public static void handleServerInput(String[] args){
-		/*if (args[0].equals("-advertisedhostname")||args[0].equals("-connectionintervallimit")||
-				args[0].equals("-exchangeinterval")||args[0].equals("-port")||args[0].equals("-secret")
-				||args[0].equals("-debug")) {
-			commandType = args[0];
-			String[] argsWithCommand = new String[args.length+1];
-    		argsWithCommand[0] = "-command";
-    		System.arraycopy(args, 0, argsWithCommand, 1, args.length);
-    		
-    		args = new String [args.length+1];
-    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
-		}*/
 		
 		//when the input command contains "-debug", handle the args[] to better use options.
 		for(int i=0;i<args.length;i++){
