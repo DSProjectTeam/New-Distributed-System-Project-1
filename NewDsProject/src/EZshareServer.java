@@ -68,13 +68,13 @@ public class EZshareServer {
 		}*/
 		
 		//when the input command contains "-debug", handle the args[] to better use options.
-		for(String str: args){
-			if(str.equals("-debug")){
-				hasDebugOption=true;
+		for(int i=0;i<args.length;i++){
+			if(args[i].equals("-debug")){
+			hasDebugOption=true;
 	    		String[] argsWithDebug = new String[args.length+1];
-	    		argsWithDebug[argsWithDebug.length-1] = "";
-	    		System.arraycopy(args, 0, argsWithDebug, 0, args.length);
-	    		
+	    		argsWithDebug[i+1] = "";
+	    		System.arraycopy(args, 0, argsWithDebug, 0, i+1);
+	    		System.arraycopy(args, i+1, argsWithDebug, i+2, args.length-1-i);
 	    		args = new String [args.length+1];
 	    		System.arraycopy(argsWithDebug, 0, args, 0, argsWithDebug.length);
 	    		break;
@@ -86,7 +86,7 @@ public class EZshareServer {
 		options.addOption("exchangeinterval",true,"input exchange interval"); 
 		options.addOption("advertisedhostname",true, "input host");
 	    options.addOption("port",true, "input port");
-	    options.addOption("connectioninterval",true, "input interval");
+	    options.addOption("connectionintervallimit",true, "input interval");
 	    options.addOption("secret",true, "input secret");
 	    options.addOption("debug",true,"debug option");
 	    

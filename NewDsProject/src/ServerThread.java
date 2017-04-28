@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -513,7 +515,8 @@ public class ServerThread extends Thread{
 				}*/
 				sendMessage(serverResponse);
 			}else{
-				if(uri.equals("") || !Pattern.matches(filePathPattern,uri)){
+				//|| !Pattern.matches(filePathPattern,uri)
+				if(uri.equals("") ){
 					errorMessage = "missing resourceTemplate";
 					response = "error";
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
@@ -532,8 +535,19 @@ public class ServerThread extends Thread{
 					
 					if (hasMacthResource) {
 						String fileName = resources.get(uri).name;
+						System.out.println(uri);
 						/*File file = new File(uri+fileName);*/
-						File file = new File(uri);
+						//String string = uri.substring(8, uri.length());
+						File file = new File("");
+						try {
+							file = new File(new URI(uri).getPath());
+						} catch (URISyntaxException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						//System.out.println(string+"   "+file.exists());
+						
+						
 						
 						if(file.exists()){
 							/*System.out.println("file exists!");*/
