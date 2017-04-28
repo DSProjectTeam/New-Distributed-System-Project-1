@@ -3,8 +3,12 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.sql.Date;
+import java.sql.Time;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.ScheduledExecutorService;
 import org.json.simple.*;
@@ -35,6 +39,7 @@ public class EZshareServer {
 	public static int port = 3780;
 	public static String secret = "";
 	public static int exchangeInterval = 0;
+	static HashMap connectionInterval = new HashMap<Socket,java.util.Date>();
 	
 	public EZshareServer(){};
 	
@@ -171,13 +176,38 @@ public class EZshareServer {
 			/**every 10 mins, contact a randomly selected server in the server list*/
 			
 			timer.schedule(new ExchangeTask(eZshareServer,hasDebugOption), exchangeInterval,exchangeInterval);
-			
+			SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+			int count = 0;
+			long temp=0;
 			while(true){
 				Socket client = EZshareServer.server.accept();
-				System.out.println("client applying for connection");
-				new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
-						eZshareServer.serverList, eZshareServer.hasDebugOption, connectionintervallimit,hostName).start();
+				java.util.Date currentTime = new java.util.Date();
+				long threadTime = currentTime.getTime();
+				count = count +1;
+				System.out.println("client "+count+" applying for connection");
+				if(count!=1){
+					if(threadTime-temp<connectionintervallimit){
+						System.out.println("exceed time limit");
+						temp = threadTime;
+					}else {
+						ServerThread thread = new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
+								eZshareServer.serverList, eZshareServer.hasDebugOption, connectionintervallimit,hostName);
+						thread.start();
+						temp = threadTime;
+					}
+				}else{
+					ServerThread thread = new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
+							eZshareServer.serverList, eZshareServer.hasDebugOption, connectionintervallimit,hostName);
+					thread.start();
+					temp = threadTime;
+				}
+				
+				
+				/*new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
+						eZshareServer.serverList, eZshareServer.hasDebugOption, connectionintervallimit,hostName).start();*/
 				/*new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();*/
+				
+				
 			}
 			
 		} catch (Exception e) {

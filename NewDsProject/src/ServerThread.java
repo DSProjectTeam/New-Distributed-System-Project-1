@@ -63,18 +63,24 @@ public class ServerThread extends Thread{
 	
 	public ServerThread(Socket socket, HashMap<String, Resource> resources, String secret, ServerSocket serverSocket,
 			ArrayList<String> serverList, boolean hasDebugOption, int interval, String ServerHostName){
-		try {
+		//try {
 			this.clientSocket = socket;
 			this.resources = resources;	
 			this.secret = secret;
-			this.output = new DataOutputStream(clientSocket.getOutputStream());
-			this.input = new DataInputStream(clientSocket.getInputStream());
+			try {
+				this.output = new DataOutputStream(clientSocket.getOutputStream());
+				this.input = new DataInputStream(clientSocket.getInputStream());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			this.serverSocket = serverSocket;
 			this.serverList = serverList;
 			this.hasDebugOption = hasDebugOption;
 			this.interval = interval;
 			this.hostName = ServerHostName;
 			
+			/**set interval limit*//*
 			new Timer().scheduleAtFixedRate(new TimerTask() {
 				
 				@Override
@@ -99,12 +105,12 @@ public class ServerThread extends Thread{
 					
 				}
 			}
-		}
+		}*/
 	}
 	
 	
 	
-	/*@Override
+	@Override
 	public void run() {
 		try {
 			String inputMessage = input.readUTF();
@@ -114,7 +120,7 @@ public class ServerThread extends Thread{
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
-	}*/
+	}
 	public static String[] handleTags(String str){
 		
 		/*String removeQuote = str.substring(1, str.length()-1);*/
@@ -356,7 +362,7 @@ public class ServerThread extends Thread{
 					debugMsg.add(returnSize);
 					output.writeUTF(returnSize.toJSONString());
 					if (hasDebugOption) {
-						System.out.print("SENT: "+debugMsg.toJSONString());
+						System.out.println("SENT: "+debugMsg.toJSONString());
 					}
 					
 				} catch (Exception e) {
