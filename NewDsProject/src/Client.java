@@ -34,6 +34,7 @@ import com.google.gson.JsonParser;
 public class Client {
 	//for convenience, ip address is also shown as "host" here.
 	public static String host = "sunrise.cis.unimelb.edu.au";
+	public static String host2 = "localhost";
 //	public static String host = "10.12.152.76";
 	public static int port = 3780;
 	public static String commandType;
@@ -50,7 +51,7 @@ public class Client {
 			JSONObject userInput = handleClientInput(args);
 			StopWatch s = new StopWatch();
 			//set socket to connect to.
-			Socket socket = new Socket(host,port);
+			Socket socket = new Socket(host2,port);
 			
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			out.writeUTF(userInput.toJSONString());

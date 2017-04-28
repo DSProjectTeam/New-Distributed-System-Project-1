@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
@@ -30,7 +31,7 @@ public class EZshareServer {
 	public static boolean hasDebugOption = false;
 	public static String command = "";
 	public static String hostName = "";
-	public static int connectioninterval;
+	public static int connectionintervallimit;
 	public static int port = 3780;
 	public static String secret = "";
 	public static int exchangeInterval = 0;
@@ -99,7 +100,7 @@ public class EZshareServer {
 		}
 	    
 	    if(cmd.hasOption("exchangeinterval")){
-	    	exchangeInterval = Integer.parseInt(cmd.getOptionValue("exchangeinterval"));
+	    	exchangeInterval = Integer.parseInt(cmd.getOptionValue("exchangeinterval"))*1000;
 	    }else{
 	    	exchangeInterval = 1000*60*10; 
 	    }
@@ -116,19 +117,23 @@ public class EZshareServer {
 	    if(cmd.hasOption("advertisedhostname")){
 	    	hostName = cmd.getOptionValue("advertisedhostname");
 	    }else{
-	    	hostName = "localhost";
-//	    	hostName = InetAddress.getLocalHost();
+	    	try {
+				hostName = InetAddress.getLocalHost().toString();
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 	    }
 	    
 	    if(cmd.hasOption("port")){
 	    	port =Integer.parseInt(cmd.getOptionValue("port"));
 	    }
 	    
-	    if(cmd.hasOption("connectioninterval")){
-	    	connectioninterval = Integer.parseInt(cmd.getOptionValue("connectioninterval"));
+	    if(cmd.hasOption("connectionintervallimit")){
+	    	connectionintervallimit = Integer.parseInt(cmd.getOptionValue("connectionintervallimit"))*1000;
 	    }else{
 	    	//default 1000ms 
-	    	connectioninterval = 1000;
+	    	connectionintervallimit = 1000;
 	    }
 	    
 	    
@@ -182,7 +187,7 @@ public class EZshareServer {
 				Socket client = EZshareServer.server.accept();
 				System.out.println("client applying for connection");
 				new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
-						eZshareServer.serverList, eZshareServer.hasDebugOption, connectioninterval,hostName).start();
+						eZshareServer.serverList, eZshareServer.hasDebugOption, connectionintervallimit,hostName).start();
 				/*new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();*/
 			}
 			
