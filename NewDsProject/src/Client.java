@@ -5,6 +5,7 @@ import java.io.RandomAccessFile;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
@@ -340,9 +341,15 @@ public class Client {
 			if(serverResponse.containsKey("resourceSize")){
 				try{
 					// The file location to download to.
-					String fileName = "client_files/"+serverResponse.get("name");
-					
-					System.out.println("client_files/"+serverResponse.get("name"));
+					String uri = serverResponse.get("uri").toString();
+					String regex = "(\\w+\\.\\w+)";
+					Pattern pattern = Pattern.compile(regex);
+					Matcher matcher = pattern.matcher(uri);
+					int start = matcher.start();
+					int end = matcher.end();
+					//String fileName = "client_files/"+serverResponse.get("name");
+					String fileName = uri.substring(start, end);
+					System.out.println(fileName);
 					// Create a RandomAccessFile to read and write the output file.
 					RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");
 					
