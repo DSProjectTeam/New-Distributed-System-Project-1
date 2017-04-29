@@ -341,17 +341,20 @@ public class Client {
 			if(serverResponse.containsKey("resourceSize")){
 				try{
 					// The file location to download to.
+					
+					/**regexp to extract file name from uri*/
 					String uri = serverResponse.get("uri").toString();
 					String regex = "(\\w+\\.\\w+)";
 					Pattern pattern = Pattern.compile(regex);
 					Matcher matcher = pattern.matcher(uri);
+					
 					while(matcher.find()){
 						int start = matcher.start();
 						int end = matcher.end();
-						//String fileName = "client_files/"+serverResponse.get("name");
 						String fileName = uri.substring(start, end);
 						System.out.println("client_files/"+fileName);
 						String downloadFilePath = "client_files/"+fileName;
+						
 						// Create a RandomAccessFile to read and write the output file.
 						RandomAccessFile downloadingFile = new RandomAccessFile(downloadFilePath, "rw");
 						
