@@ -78,8 +78,10 @@ public class ServerHandler {
 					URI inputUri = new URI(uri);
 					if (inputUri.isAbsolute()&&!inputUri.getScheme().equals("file")) {
 						validUri = true;
+						System.out.println(inputUri.isAbsolute()+inputUri.getScheme());
 					}else{
 						validUri = false;
+						System.out.println(inputUri.getScheme());
 					}
 				} catch (URISyntaxException e) {
 					validUri = false;
@@ -261,11 +263,14 @@ public class ServerHandler {
 						URI inputUri = new URI(uri);
 						if (inputUri.isAbsolute()&&inputUri.getScheme().equals("file")) {
 							validUri = true;
+							System.out.println(inputUri.isAbsolute()+inputUri.getScheme());
 						}else{
 							validUri = false;
+							System.out.println(inputUri.getScheme());
 						}
 					} catch (URISyntaxException e) {
 						validUri = false;
+						System.out.println("invalid uri");
 					}
 					
 					if (invalidResourceValue||owner.equals("*")||!validUri) {
