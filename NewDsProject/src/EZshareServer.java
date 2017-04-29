@@ -112,7 +112,7 @@ public class EZshareServer {
 	    	hostName = cmd.getOptionValue("advertisedhostname");
 	    }else{
 	    	try {
-				hostName = InetAddress.getLocalHost().toString();
+				hostName = InetAddress.getLocalHost().getHostAddress();
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -162,21 +162,17 @@ public class EZshareServer {
 	 */
 	public static void initializeServer(){
 		try {
+			/**add server itself in the serverlist for exchange interaction*/
 			EZshareServer eZshareServer = new EZshareServer(port);
-			
-			/*eZshareServer.server.setSoTimeout(connectioninterval);*/
-			
-			Timer timer = new Timer();
-			/*long delay1 = 1000*60*10; //10mins
-			long delay2 = 1000*60*10; //10mins
-*/			
-
-			ExchangeTask task = new ExchangeTask(eZshareServer,hasDebugOption);
-			
-			/**every 10 mins, contact a randomly selected server in the server list*/
-			
+			String localHost = InetAddress.getLocalHost().getHostAddress();
+			Integer port = eZshareServer.port;
+			String localPort = port.toString();
+			eZshareServer.serverList.add(localHost+":"+port);
+		
+			/**every 10 mins(by default), contact a randomly selected server in the server list*/
+			Timer timer = new Timer();		
 			timer.schedule(new ExchangeTask(eZshareServer,hasDebugOption), exchangeInterval,exchangeInterval);
-			SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+			
 			int count = 0;
 			long temp=0;
 			while(true){

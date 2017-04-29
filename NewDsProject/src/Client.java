@@ -65,10 +65,10 @@ public class Client {
 			}
 			
 			DataInputStream in = new DataInputStream(socket.getInputStream());
-			//start timer, when over 1 second passed after the last JSON message was received, close socket.
+			//start timer, when over 1.3 second passed after the last JSON message was received, close socket.
 			s.start();
 			while(true){
-				if(s.getTime()>1000){
+				if(s.getTime()>1300){
 					break;
 				}
 				//when a JSON messages returned, reset and restart timer.
