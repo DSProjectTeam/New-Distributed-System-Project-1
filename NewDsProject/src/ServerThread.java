@@ -330,7 +330,7 @@ public class ServerThread extends Thread{
 					/*output.writeUTF(queryReturn.returnArray.toString());*/
 					output.flush();
 					if (hasDebugOption) {
-						System.out.print("SENT: "+debugMsg.toJSONString());
+						System.out.println("SENT: "+debugMsg.toJSONString());
 					}
 					/*System.out.println(Thread.currentThread().getName()+": has matched,sending response message!");*/
 				} catch (IOException e) {
@@ -516,7 +516,6 @@ public class ServerThread extends Thread{
 					
 					if (hasMacthResource) {
 						String fileName = resources.get(uri).name;
-						System.out.println(uri);
 						/*File file = new File(uri+fileName);*/
 						//String string = uri.substring(8, uri.length());
 						File file = new File("");
@@ -568,14 +567,6 @@ public class ServerThread extends Thread{
 							map.add(matchResource);
 							
 							try {
-								/*this.output.writeUTF(serverResponse.toString());*/
-								/*this.output.writeUTF(matchResource.toString());*/
-								/*int length = jsonArray.size();
-								
-								for(int i =0;i<length;i++){
-									output.writeUTF(jsonArray.get(i).toString());
-								}*/
-								//debug information
 								
 								for(JSONObject object:map){
 									output.writeUTF(object.toJSONString());
@@ -606,15 +597,7 @@ public class ServerThread extends Thread{
 							response = "error";
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-							/*try {
-								if(hasDebugOption){
-								       System.out.println("SENT: "+serverResponse.toJSONString());
-									}
-								this.output.writeUTF(serverResponse.toJSONString());
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}*/
+						
 							sendMessage(serverResponse);
 						}
 						
@@ -624,15 +607,7 @@ public class ServerThread extends Thread{
 						response = "error";
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
-						/*try {
-							if(hasDebugOption){
-							       System.out.println("SENT: "+serverResponse.toJSONString());
-								}
-							this.output.writeUTF(serverResponse.toJSONString());
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}*/
+					
 						sendMessage(serverResponse);
 					}
 					

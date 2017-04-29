@@ -30,7 +30,7 @@ public class ExchangeTask extends TimerTask{
 	@Override
 	public void run() {
 		exchangeWithOtherServer(this.eZshareServer.serverList,this.eZshareServer );
-		System.out.println(this.eZshareServer.serverList.size());
+		//System.out.println(this.eZshareServer.serverList.size());
 	}
 
 	/**
