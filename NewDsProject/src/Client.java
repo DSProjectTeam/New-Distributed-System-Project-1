@@ -36,7 +36,7 @@ public class Client {
 	//for convenience, ip address is also shown as "host" here.
 //	public static String host = "sunrise.cis.unimelb.edu.au";
 	public static String host2 = "192.168.1.110";
-	public static String host = "10.12.187.20";
+	public static String host = "sunrise.cis.unimelb.edu.au";
 	public static int port = 3781;
 	public static String commandType;
 	public static boolean hasDebugOption;
