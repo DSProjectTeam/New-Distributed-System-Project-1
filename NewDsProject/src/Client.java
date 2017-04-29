@@ -5,6 +5,7 @@ import java.io.RandomAccessFile;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
@@ -34,9 +35,9 @@ import com.google.gson.JsonParser;
 public class Client {
 	//for convenience, ip address is also shown as "host" here.
 //	public static String host = "sunrise.cis.unimelb.edu.au";
-	public static String host2 = "localhost";
+	public static String host2 = "192.168.1.110";
 	public static String host = "10.12.187.20";
-	public static int port = 3780;
+	public static int port = 3781;
 	public static String commandType;
 	public static boolean hasDebugOption;
 
@@ -51,7 +52,7 @@ public class Client {
 			JSONObject userInput = handleClientInput(args);
 			StopWatch s = new StopWatch();
 			//set socket to connect to.
-			Socket socket = new Socket(host,port);
+			Socket socket = new Socket(host2,port);
 			
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			out.writeUTF(userInput.toJSONString());
@@ -65,10 +66,10 @@ public class Client {
 			}
 			
 			DataInputStream in = new DataInputStream(socket.getInputStream());
-			//start timer, when over 1 second passed after the last JSON message was received, close socket.
+			//start timer, when over 1.3 second passed after the last JSON message was received, close socket.
 			s.start();
 			while(true){
-				if(s.getTime()>1000){
+				if(s.getTime()>1300){
 					break;
 				}
 				//when a JSON messages returned, reset and restart timer.
@@ -340,40 +341,54 @@ public class Client {
 			if(serverResponse.containsKey("resourceSize")){
 				try{
 					// The file location to download to.
-					String fileName = "client_files/"+serverResponse.get("name");
 					
-					System.out.println("client_files/"+serverResponse.get("name"));
-					// Create a RandomAccessFile to read and write the output file.
-					RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");
+					/**regexp to extract file name from uri*/
+					String uri = serverResponse.get("uri").toString();
+					String regex = "(\\w+\\.\\w+)";
+					Pattern pattern = Pattern.compile(regex);
+					Matcher matcher = pattern.matcher(uri);
 					
-					// Find out how much size is remaining to get from the server.
-					long fileSizeRemaining = (Long) serverResponse.get("resourceSize");
-					
-					int chunkSize = setChunkSize(fileSizeRemaining);
-					
-					// Represents the receiving buffer
-					byte[] receiveBuffer = new byte[chunkSize];
-					
-					// Variable used to read if there are remaining size left to read.
-					int num;
-					
-					while((num=in.read(receiveBuffer))>0){
-						// Write the received bytes into the RandomAccessFile
-						downloadingFile.write(Arrays.copyOf(receiveBuffer, num));
+					while(matcher.find()){
+						int start = matcher.start();
+						int end = matcher.end();
+						String fileName = uri.substring(start, end);
+						System.out.println("client_files/"+fileName);
+						String downloadFilePath = "client_files/"+fileName;
 						
-						// Reduce the file size left to read.
-						fileSizeRemaining-=num;
+						// Create a RandomAccessFile to read and write the output file.
+						RandomAccessFile downloadingFile = new RandomAccessFile(downloadFilePath, "rw");
 						
-						// Set the chunkSize again
-						chunkSize = setChunkSize(fileSizeRemaining);
-						receiveBuffer = new byte[chunkSize];
+						// Find out how much size is remaining to get from the server.
+						long fileSizeRemaining = (Long) serverResponse.get("resourceSize");
 						
-						// If it's done then break
-						if(fileSizeRemaining==0){
-							break;
+						int chunkSize = setChunkSize(fileSizeRemaining);
+						
+						// Represents the receiving buffer
+						byte[] receiveBuffer = new byte[chunkSize];
+						
+						// Variable used to read if there are remaining size left to read.
+						int num;
+						
+						while((num=in.read(receiveBuffer))>0){
+							// Write the received bytes into the RandomAccessFile
+							downloadingFile.write(Arrays.copyOf(receiveBuffer, num));
+							
+							// Reduce the file size left to read.
+							fileSizeRemaining-=num;
+							
+							// Set the chunkSize again
+							chunkSize = setChunkSize(fileSizeRemaining);
+							receiveBuffer = new byte[chunkSize];
+							
+							// If it's done then break
+							if(fileSizeRemaining==0){
+								break;
+						}
 					}
-				}
-				downloadingFile.close();
+					downloadingFile.close();
+					}
+					
+					
 			} catch (UnknownHostException e) {
 				e.printStackTrace();
 			} catch (IOException e) {

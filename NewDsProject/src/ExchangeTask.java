@@ -2,7 +2,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.TimerTask;
@@ -27,7 +29,7 @@ public class ExchangeTask extends TimerTask{
 	
 	@Override
 	public void run() {
-		exchangeWithOtherServer(this.eZshareServer.serverList);
+		exchangeWithOtherServer(this.eZshareServer.serverList,this.eZshareServer );
 		System.out.println(this.eZshareServer.serverList.size());
 	}
 
@@ -36,7 +38,8 @@ public class ExchangeTask extends TimerTask{
 	 * then establish connection to that selected server and sent it the serverList
 	 * @param serverList
 	 */
-	public synchronized static void exchangeWithOtherServer(ArrayList<String> serverList){
+	public synchronized static void exchangeWithOtherServer(ArrayList<String> serverList,EZshareServer eZshareServer ){
+
 		/*when serverList is not empty, convert the serverList into JSON object.*/
 	    if(!serverList.isEmpty()){
 	    		   JSONObject exchangeOutput = new JSONObject();
@@ -60,14 +63,18 @@ public class ExchangeTask extends TimerTask{
 		       
 		       //send the JSON message of serverList to the selected server
 		       try {
-		    	    Socket socket = new Socket(randomHostname,randomPort);
-		    	    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-					out.writeUTF(exchangeOutput.toJSONString());
-					out.flush();
-					if(hasDebugOption){
-						System.out.println("SENT: "+exchangeOutput.toJSONString());
-					}
-					System.out.println("command sent to server: "+exchangeOutput.toJSONString());
+		    	   /**not send exchange to the server itself*/
+		    	   if(!randomHostname.equals(InetAddress.getLocalHost().getHostAddress())){
+		    		   Socket socket = new Socket(randomHostname,randomPort);
+			    	    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+						out.writeUTF(exchangeOutput.toJSONString());
+						out.flush();
+						if(hasDebugOption){
+							System.out.println("SENT: "+exchangeOutput.toJSONString());
+						}
+						System.out.println("command sent to server: "+exchangeOutput.toJSONString());
+		    	   }
+		    	    
 					/*it's not specified in the instruction if we should handle the exchange messages 
 					from other servers, so we remain the function as a comment below.*/
 					
