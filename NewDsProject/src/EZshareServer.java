@@ -167,7 +167,7 @@ public class EZshareServer {
 			String localHost = InetAddress.getLocalHost().getHostAddress();
 			Integer port = eZshareServer.port;
 			String localPort = port.toString();
-			eZshareServer.serverList.add(localHost+":"+port);
+			eZshareServer.serverList.add(localHost+":"+localPort);
 		
 			/**every 10 mins(by default), contact a randomly selected server in the server list*/
 			Timer timer = new Timer();		
@@ -178,12 +178,14 @@ public class EZshareServer {
 			while(true){
 				Socket client = EZshareServer.server.accept();
 				java.util.Date currentTime = new java.util.Date();
+				
+				/*handle interval limit*/
 				long threadTime = currentTime.getTime();
 				count = count +1;
 				System.out.println("client "+count+" applying for connection");
 				if(count!=1){
 					if(threadTime-temp<connectionintervallimit){
-						System.out.println("exceed time limit");
+						System.out.println("violate interval limit");
 						temp = threadTime;
 					}else {
 						ServerThread thread = new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
@@ -197,13 +199,7 @@ public class EZshareServer {
 					thread.start();
 					temp = threadTime;
 				}
-				
-				
-				/*new ServerThread(client, eZshareServer.resources, eZshareServer.secret, eZshareServer.server,
-						eZshareServer.serverList, eZshareServer.hasDebugOption, connectionintervallimit,hostName).start();*/
-				/*new Thread(new ServerThread(client, eZshareServer.resources,secert, eZshareServer.server,eZshareServer.serverList)).start();*/
-				
-				
+					
 			}
 			
 		} catch (Exception e) {

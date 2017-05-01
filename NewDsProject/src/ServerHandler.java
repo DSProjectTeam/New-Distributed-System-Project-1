@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import javax.swing.OverlayLayout;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
 
@@ -649,7 +650,8 @@ public class ServerHandler {
 										System.out.println("SENT: "+inputQuerry.toJSONString());
 									}
 									System.out.println("query sent to other server");
-								
+									StopWatch s = new StopWatch();
+									s.start();
 									while(true){
 										if(inputStream.available()>0){
 											String otherServerResponse = inputStream.readUTF();
@@ -665,6 +667,12 @@ public class ServerHandler {
 											if(otherResponse.containsKey("resultSize")||otherResponse.containsKey("errorMessage")){
 												break;
 											}
+											
+										}
+										/**other server connected but no response*/
+										if(s.getTime()>500){
+											s.stop();
+											return otherReturn;
 										}
 									}
 									
@@ -688,6 +696,9 @@ public class ServerHandler {
 											otherReturn = new QueryData(false, errorOutcome);
 											
 										}	
+									
+										
+										
 											
 													
 										} catch (Exception e) {

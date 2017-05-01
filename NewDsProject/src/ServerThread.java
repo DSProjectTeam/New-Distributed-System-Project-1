@@ -561,7 +561,6 @@ public class ServerThread extends Thread{
 							matchResource.put(ConstantEnum.CommandArgument.ezserver.name(), ezserver);
 							matchResource.put("resourceSize", file.length());
 							
-							/**store match json message in a arraylist*/
 							ArrayList<JSONObject> map = new ArrayList<>();
 							/*jsonArray.add(matchResource);*/
 							map.add(serverResponse);
@@ -598,6 +597,7 @@ public class ServerThread extends Thread{
 							response = "error";
 							serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 							serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+						
 							sendMessage(serverResponse);
 						}
 						
@@ -607,6 +607,7 @@ public class ServerThread extends Thread{
 						response = "error";
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 						serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
+					
 						sendMessage(serverResponse);
 					}
 					
