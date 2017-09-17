@@ -1,12 +1,11 @@
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.ParseException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +14,7 @@ import java.util.regex.Pattern;
 
 import javax.swing.OverlayLayout;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
 
@@ -22,17 +22,32 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+/**
+ * This class mainly create the message to be returned to client, according to clients' requests.
+ *
+ */
 public class ServerHandler {
 	
 	public Queue<String> clientQueue;
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to publish command.
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param resources
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject handlingPublish(String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner,HashMap<String, Resource> resources){
 		String errorMessage;
 		String response;
-		Boolean success = false;	
-		
+		Boolean validUri;
+			
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
 		
@@ -42,7 +57,6 @@ public class ServerHandler {
 		String filePathPattern = "((\\w+\\/)+)+(\\w+.\\w+)";
 		/**Regexp for invalid resource contains whitespace or /o */
 		String invalidString = "(^\\s.+\\s$)|((\\\\0)+)";
-		
 		/**invalid resource contains whitespace or /o */
 		boolean invalidTag = false;
 		for(String str: tags){
@@ -54,16 +68,29 @@ public class ServerHandler {
 				Pattern.matches(invalidString, description)||Pattern.matches(invalidString, uri)||
 				Pattern.matches(invalidString, owner)||invalidTag;
 		do{
-			if (invalidResourceValue|| owner.equals("*")) {
-				errorMessage = "invalid resource";
+			if (uri.equals("")) {
+				errorMessage = "missing resource";
 				response = "error";
 				serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 				serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 			}else{
+				/**Use URI class method to authenticate input URI*/
+				try {
+					URI inputUri = new URI(uri);
+					if (inputUri.isAbsolute()&&!inputUri.getScheme().equals("file")) {
+						validUri = true;
+					}else{
+						validUri = false;
+					}
+				} catch (URISyntaxException e) {
+					validUri = false;
+					System.out.println("invalid uri");
+				}
 				/**resource field not given or uri is not file scheme*/
-				if(uri.equals("") || Pattern.matches(filePathPattern, uri)){
-					errorMessage = "missing resource";
+				if(invalidResourceValue|| owner.equals("*")||!validUri){
+					errorMessage = "invalid resource";
 					response = "error";
+					System.out.println(invalidResourceValue+"  "+owner.equals("*")+"  "+validUri);
 					serverResponse.put(ConstantEnum.CommandType.response.name(),response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 					
@@ -82,7 +109,6 @@ public class ServerHandler {
 								Resource resource = new Resource(name, tags, description, uri, channel, owner);
 								resources.put(resource.URI, resource);
 								response = "success";
-								success = true;
 								serverResponse.put(ConstantEnum.CommandType.response.name(),response);	
 						}
 					}else{
@@ -90,7 +116,6 @@ public class ServerHandler {
 						Resource resource = new Resource(name, tags, description, uri, channel, owner);
 						resources.put(uri,resource);
 						response = "success";
-						success= true;
 						serverResponse.put(ConstantEnum.CommandType.response.name(),response);				
 					}
 				}
@@ -101,6 +126,17 @@ public class ServerHandler {
 		return serverResponse;
 	}
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Remove command.
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param resources
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject handlingRemove (String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner,HashMap<String, Resource> resources){
@@ -163,6 +199,19 @@ public class ServerHandler {
 		return serverResponse;	
 	}
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Share command.
+	 * @param name
+	 * @param tags
+	 * @param description
+	 * @param uri
+	 * @param channel
+	 * @param owner
+	 * @param ClientSecret
+	 * @param ServerSecret
+	 * @param resources
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject HandlingShare (String name,String[] tags,
 			String description, String uri,String channel, 
 			String owner, String ClientSecret, String ServerSecret, HashMap<String, Resource> resources){
@@ -171,7 +220,7 @@ public class ServerHandler {
 		Boolean success = false;	
 		/**reponse send back to the client*/
 		JSONObject serverResponse = new JSONObject();
-		
+		boolean validUri;
 		/**Regexp for filePath*/
 		/*String filePathPattern = "^[a-zA-Z*]:?([\\\\/]?|([\\\\/]([^\\\\/:\"<>|]+))*)[\\\\/]?$|^\\\\\\\\(([^\\\\/:\"<>|]+)[\\\\/]?)+$";*/
 		/*String filePathPattern = "(^[A-Z|a-z]:\\/[^*|\"<>?\\n]*)|(\\/\\/.*?\\/.*)";*/
@@ -194,7 +243,7 @@ public class ServerHandler {
 		
 		/** resource or secret field was not given or not of the correct type*/
 		do {
-			if(ClientSecret.equals("") || uri.equals("") || !Pattern.matches(filePathPattern, uri)){
+			if(ClientSecret.equals("") || uri.equals("")){
 				response = "error";
 				errorMessage = "missing resource and\\/or secret";
 				serverResponse.put(ConstantEnum.CommandType.response.name(), response);
@@ -209,7 +258,18 @@ public class ServerHandler {
 					serverResponse.put(ConstantEnum.CommandType.response.name(), response);
 					serverResponse.put(ConstantEnum.CommandArgument.errorMessage.name(), errorMessage);
 				}else{
-					if (invalidResourceValue||owner.equals("*")) {
+					try {
+						URI inputUri = new URI(uri);
+						if (inputUri.isAbsolute()&&inputUri.getScheme().equals("file")) {
+							validUri = true;
+						}else{
+							validUri = false;
+						}
+					} catch (URISyntaxException e) {
+						validUri = false;
+					}
+					
+					if (invalidResourceValue||owner.equals("*")||!validUri) {
 						
 						/** resource contained incorrect information that could not be recovered from*/
 						errorMessage = "invalid resource";
@@ -256,7 +316,20 @@ public class ServerHandler {
 		
 	return serverResponse;	}
 	
-	
+	/**
+	 * This method creates the JSON objects to be returned to client, in response to Query command.
+	 * @param name_query
+	 * @param tags_query
+	 * @param description_query
+	 * @param uri_query
+	 * @param channel_query
+	 * @param owner_query
+	 * @param relay
+	 * @param resources
+	 * @param serverSocket
+	 * @param hostName
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static QueryReturn handlingQuery(String name_query,String[] tags_query,
 			String description_query, String uri_query,String channel_query, 
 			String owner_query, boolean relay,HashMap<String, Resource> resources, ServerSocket serverSocket,String hostName){
@@ -403,66 +476,12 @@ public class ServerHandler {
 							}
 						}
 						
-						
-						/*if(tags_query[0].matches("\\[\\]")){
-							tagIncluded = true;
-							
-						}else{
-							
-							if(!resource.tag[0].matches("\\[\\]")){
-								int tagLength = tags_query.length;
-								int aaa=resource.tag.length;
-								int tagCount  = 0;
-								
-								for(int i =0;i<tagLength;i++){
-									System.out.println(tags_query[i]);
-								}
-								
-								String[] tagInput = new String[tagLength];
-								for(int i =0;i<tagLength;i++){
-									tagInput[i] = tags_query[i].replaceAll("(\\[)|(\\])", "");
-								}
-								
-								String[] tagCandidate = new String[aaa];
-								
-								for(int i =0;i<aaa;i++){
-									
-									tagCandidate[i] = resource.tag[i].replaceAll("(\\[)|(\\])", "");
-								}
-								
-		
-								
-								for(int i = 0; i<tagLength; i++){
-									for(int j = 0; j<aaa; j++){
-										if(tagInput[i].equals(tagCandidate[j])){
-											System.out.println(tagInput[i]);
-											System.out.println(tagCandidate[i]);
-											tagCount++;
-										}
-									}
-								}
-								if (tagCount==tagLength) {
-									tagIncluded = true;
-								} else {
-									tagIncluded = false;
-								}
-							}else{
-								tagIncluded = true;
-							}
-							
-									
-								
-							
-						}*/
-						
-						
-						//&& tagIncluded
 						if((channelMatch&& tagIncluded&& ownerMatch && uriMatch && ( (!name_query.equals("") && resource.name.contains(name_query))|| 
 								(!description_query.equals("") && resource.description.contains(channel_query) )|| 
 								(name_query.equals("")&&description_query.equals(""))))){
 							System.out.println("match");
 							
-							/**将符合要求的资源放在MatchResourceSet里*/
+							/**put the match results into the MatchResourceSet*/
 							matchResourceSet.add(resource);
 						}
 						
@@ -534,6 +553,14 @@ public class ServerHandler {
 		return queryReturn;
 	}
 	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Exchange command.
+	 * @param serverList
+	 * @param serverList_exchange
+	 * @param hostnameList_exchange
+	 * @param portList_exchange
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static JSONObject handlingExchange(ArrayList<String> serverList, ArrayList<String>serverList_exchange, 
 			ArrayList<String> hostnameList_exchange, ArrayList<String> portList_exchange){
 			JSONObject serverResponse = new JSONObject();
@@ -568,13 +595,20 @@ public class ServerHandler {
 			
 		}
 	
-	
+	/**
+	 * This method creates the JSON object to be returned to client, in response to Query command with Relay field set as TRUE.
+	 * @param inputMessage
+	 * @param resources
+	 * @param serverSocket
+	 * @param serverList
+	 * @param hasDebugOption
+	 * @return the JSON object to be returned to client
+	 */
 	public synchronized static QueryData handlingQueryWithRelay(String inputMessage,HashMap<String, Resource> resources, 
 			ServerSocket serverSocket, ArrayList<String> serverList, boolean hasDebugOption){
 			JSONObject inputQuerry = new JSONObject();
 			ArrayList<JSONObject> arrayList = new ArrayList<>();
 			QueryData otherReturn = new QueryData();
-			
 			int totalOtehrResSize = 0;
 			boolean hasMatchServer = false;
 			/**parse input query from the client*/
@@ -591,9 +625,7 @@ public class ServerHandler {
 			inputQuerry.put("channel", "");
 			/*inputQuerry.put("owner", "");*/
 			inputQuerry.put("relay", "false");
-			
-			
-			
+					
 			/**a list to store success information from other servers*/
 			ArrayList<JSONObject> successOutcome = new ArrayList<>();
 			ArrayList<JSONObject> errorOutcome = new ArrayList<>();			
@@ -601,115 +633,90 @@ public class ServerHandler {
 			if(!serverList.isEmpty()){
 			
 					for(String server: serverList){
+						
 						String[] hostAndPortTemp = server.split(":");
 						String tempIp = hostAndPortTemp[0];
 						Integer tempPort = Integer.parseInt(hostAndPortTemp[1]);
-							
 						try {
-							Socket otherServer = new Socket(tempIp, tempPort);
-							DataInputStream inputStream = new DataInputStream(otherServer.getInputStream());
-							DataOutputStream outputStream = new DataOutputStream(otherServer.getOutputStream());
-							outputStream.writeUTF(inputQuerry.toJSONString());
-							outputStream.flush();
-							if(hasDebugOption){
-								System.out.println("SENT: "+inputQuerry.toJSONString());
-							}
-							System.out.println("query sent to other server");
-							
-						/*测试了一下，好像每个包过来，available()从一个值变为0，然后下一个包过来，又从一个值变为0，断断续续的变化。*/
-							/*String otherServerResponse = null;
-							while(( otherServerResponse = inputStream.readUTF())!=null){
-								
-									System.out.println(inputStream.available());
-									String otherServerResponse = inputStream.readUTF();
-									JSONParser parser2 = new JSONParser();
-									
-									JSONObject otherResponse = new JSONObject();
-									otherResponse = (JSONObject)parser2.parse(otherServerResponse);
-									System.out.println(otherResponse.toJSONString());
-									JSONArray  jsonArray = new JSONArray();
-									
-									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
-									System.out.println(arrayList.size());
-									
-								
-								
-							}
-								*/	
-							while(true){
-								if(inputStream.available()>0){
-									String otherServerResponse = inputStream.readUTF();
-									JSONParser parser2 = new JSONParser();
-									
-									JSONObject otherResponse = new JSONObject();
-									otherResponse = (JSONObject)parser2.parse(otherServerResponse);
-									/*System.out.println(otherResponse.toJSONString());*/
-									JSONArray  jsonArray = new JSONArray();
-									
-									arrayList.add((JSONObject)parser2.parse(otherServerResponse));
-									
-									if(otherResponse.containsKey("resultSize")||otherResponse.containsKey("errorMessage")){
-										break;
+							/**not query server itself while relay is true*/
+							if(!InetAddress.getLocalHost().getHostAddress().equals(tempIp)){
+								try {
+									Socket otherServer = new Socket(tempIp, tempPort);
+									DataInputStream inputStream = new DataInputStream(otherServer.getInputStream());
+									DataOutputStream outputStream = new DataOutputStream(otherServer.getOutputStream());
+									outputStream.writeUTF(inputQuerry.toJSONString());
+									outputStream.flush();
+									if(hasDebugOption){
+										System.out.println("SENT: "+inputQuerry.toJSONString());
 									}
-								}
-							}
-							
-								if (arrayList.get(0).get("response").equals("success")) {
-									hasMatchServer =true;
-									int size = arrayList.size();
-									totalOtehrResSize = totalOtehrResSize+size;
-									
-									for(int i =1; i<size-1;i++){
-										successOutcome.add(arrayList.get(i));
-										
-									}
-									otherReturn = new QueryData(true, successOutcome);
-									
-									
-								}else{
-									int size = arrayList.size();
-									for(int i = 0;i<size;i++){
-										errorOutcome.add(arrayList.get(i));
-									}
-									otherReturn = new QueryData(false, errorOutcome);
-									
-								}	
-									
-									/*if (arrayList.get(0).get("response").equals("success")) {
-										int size = arrayList.size();
-										totalOtehrResSize = totalOtehrResSize+size;
-										for(int i =0; i<size;i++){
-											successOutcome.add(arrayList.get(i));
+									System.out.println("query sent to other server");
+									StopWatch s = new StopWatch();
+									s.start();
+									while(true){
+										if(inputStream.available()>0){
+											String otherServerResponse = inputStream.readUTF();
+											JSONParser parser2 = new JSONParser();
+											
+											JSONObject otherResponse = new JSONObject();
+											otherResponse = (JSONObject)parser2.parse(otherServerResponse);
+											/*System.out.println(otherResponse.toJSONString());*/
+											JSONArray  jsonArray = new JSONArray();
+											
+											arrayList.add((JSONObject)parser2.parse(otherServerResponse));
+											
+											if(otherResponse.containsKey("resultSize")||otherResponse.containsKey("errorMessage")){
+												break;
+											}
 											
 										}
-										otherReturn = new QueryData(true, successOutcome);
-										
-										
-									}else{
-										int size = arrayList.size();
-										for(int i = 0;i<size;i++){
-											errorOutcome.add(arrayList.get(i));
+										/**other server connected but no response*/
+										if(s.getTime()>500){
+											s.stop();
+											return otherReturn;
 										}
-										otherReturn = new QueryData(false, errorOutcome);
+									}
+									
+										if (arrayList.get(0).get("response").equals("success")) {
+											hasMatchServer =true;
+											int size = arrayList.size();
+											totalOtehrResSize = totalOtehrResSize+size;
+											
+											for(int i =1; i<size-1;i++){
+												successOutcome.add(arrayList.get(i));
+												
+											}
+											otherReturn = new QueryData(true, successOutcome);
+											
+											
+										}else{
+											int size = arrayList.size();
+											for(int i = 0;i<size;i++){
+												errorOutcome.add(arrayList.get(i));
+											}
+											otherReturn = new QueryData(false, errorOutcome);
+											
+										}	
+									
 										
-									}*/
-									
-									
+										
+											
+													
+										} catch (Exception e) {
+											
+											e.printStackTrace();
+										}
+							}
 								
 							
-											
-								} catch (Exception e) {
-									
-									e.printStackTrace();
-								}
+						} catch (UnknownHostException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						}
 				} 
 				return otherReturn;
 			}
 	
-	
-	
-	
-	
+
 
 }

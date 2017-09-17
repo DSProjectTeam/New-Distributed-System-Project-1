@@ -5,39 +5,44 @@ import java.io.RandomAccessFile;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.time.*;
+
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+//import org.json.simple.JSONArray;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-//import org.json.simple.JSONArray;
-import org.json.JSONArray;
-import org.json.JSONException;
-
 /**
- * This class is the only class for Client.
- * @author zizheruan
- *
+ * This class is the only class of client.
+ * This class creats the client, it handles users' input, convert it to JSON message and send to server.
+ * it also receive responses from server and print them out.
+ * @author Zizhe Ruan, Bowen Rao.
  */
 public class Client {
-	public static String host = "sunrise.cis.unimelb.edu.au";
-//	public static String host = "10.12.162.15";
-	public static int port = 3780;
+	//for convenience, ip address is also shown as "host" here.
+//	public static String host = "sunrise.cis.unimelb.edu.au";
+	public static String host2 = "192.168.1.110";
+	public static String host = "10.12.187.20";
+	public static int port = 3781;
 	public static String commandType;
 	public static boolean hasDebugOption;
 
 	/**
-	 * main method
+	 * main method to run client
 	 * @param args
 	 */
 	public static void main(String[] args){
@@ -45,23 +50,34 @@ public class Client {
 			commandType = "";
 			hasDebugOption = false;
 			JSONObject userInput = handleClientInput(args);
-
+			StopWatch s = new StopWatch();
+			//set socket to connect to.
 			Socket socket = new Socket(host,port);
+			
 			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 			out.writeUTF(userInput.toJSONString());
 			out.flush();
+			//print part of debug information.
 			System.out.println("command sent to server: "+userInput.toJSONString());
 			if(hasDebugOption){
 			    System.out.println("-setting debug on");
-			    System.out.println(commandType+" to "+host+":"+port);//!!!!change IP
+			    System.out.println(commandType+" to "+host+":"+port);
 				System.out.println("SENT: "+userInput.toJSONString());
 			}
 			
 			DataInputStream in = new DataInputStream(socket.getInputStream());
-			while(true){//当返回多个包时，in.available始终大于0，接受多个包，在此期间String commandType值不变
+			//start timer, when over 1.3 second passed after the last JSON message was received, close socket.
+			s.start();
+			while(true){
+				if(s.getTime()>1300){
+					break;
+				}
+				//when a JSON messages returned, reset and restart timer.
 				if(in.available()>0){
 					String responseMessage = in.readUTF();
 					handleServerResponse(userInput, responseMessage, in);
+					s.reset();
+					s.start();
 				}
 			}	
 		} catch (IOException e) {
@@ -76,25 +92,29 @@ public class Client {
 	 * @return The JSONObeject
 	 */
 	public static JSONObject handleClientInput(String[] args){
-		
-		if (args[0].equals("-publish")||args[0].equals("-remove")||args[0].equals("-share")||
-				args[0].equals("-query")||args[0].equals("-fetch")||args[0].equals("-exchange")){
-				commandType = args[0];//extract command type, so we still remember the command type when handling response.
-	    		String[] argsWithCommand = new String[args.length+1];
-	    		argsWithCommand[0] = "-command";
-	    		System.arraycopy(args, 0, argsWithCommand, 1, args.length);
-	    		
-	    		args = new String [args.length+1];
-	    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
-	    		//System.out.println(args.length+""+argsWithCommand.length);// just for test
+		for(int i=0;i<args.length;i++){
+			if (args[i].equals("-publish")||args[i].equals("-remove")||args[i].equals("-share")||
+					args[i].equals("-query")||args[i].equals("-fetch")||args[i].equals("-exchange")){
+				//extract the command type, so we still remember the command type when handling response.
+				commandType = args[i];
+				//insert "-command" at args[i] for better use options
+		    		String[] argsWithCommand = new String[args.length+1];
+		    		argsWithCommand[i] = "-command";
+		    		System.arraycopy(args, 0, argsWithCommand, 0, i);
+		    		System.arraycopy(args, i, argsWithCommand, i+1, args.length-i);
+		    		args = new String [args.length+1];
+		    		System.arraycopy(argsWithCommand, 0, args, 0, argsWithCommand.length);
+		    		break;
+			}
 		}
-		for(String str: args){
-			if(str.equals("-debug")){
-				hasDebugOption=true;
+		//if input contain "-debug", modify the args[] to better use options
+		for(int i=0;i<args.length;i++){
+			if(args[i].equals("-debug")){
+			hasDebugOption=true;
 	    		String[] argsWithDebug = new String[args.length+1];
-	    		argsWithDebug[argsWithDebug.length-1] = "";
-	    		System.arraycopy(args, 0, argsWithDebug, 0, args.length);
-	    		
+	    		argsWithDebug[i+1] = "";
+	    		System.arraycopy(args, 0, argsWithDebug, 0, i+1);
+	    		System.arraycopy(args, i+1, argsWithDebug, i+2, args.length-1-i);
 	    		args = new String [args.length+1];
 	    		System.arraycopy(argsWithDebug, 0, args, 0, argsWithDebug.length);
 	    		break;
@@ -107,7 +127,7 @@ public class Client {
 	    String uri = "";
 	    String channel = "";
 	    String owner = "";
-	    String ezserver = null;// assigned to null !!!according to instruction!!!
+	    String ezserver = null;// assigned to null according to instruction
 	    String secret = "";
 	    boolean relay = true;
 	    String serversAll = "";
@@ -152,12 +172,8 @@ public class Client {
 	       resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(tags)));
 	   }
 	    else {
-//	    	String [] empty= new String[1];
-//	    	empty[0] = "";
-	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), new JSONArray(Arrays.asList(empty)));
 	    	JSONArray emptyJSONArray = new JSONArray();
 	    	resource.put(ConstantEnum.CommandArgument.tags.name(), emptyJSONArray);
-	    	//resource.put(ConstantEnum.CommandArgument.tags.name(), "");
 	    }
 	   	
 	    if(cmd.hasOption("description")){
@@ -185,23 +201,22 @@ public class Client {
 	   }
 	    resource.put(ConstantEnum.CommandArgument.ezserver.name(),ezserver);
 	    
-	    if(cmd.hasOption("secret")){//it seems it's only used in SHARE
+	    if(cmd.hasOption("secret")){//it's only used in SHARE
 	       secret = cmd.getOptionValue("secret");
 	   }  
 	       
-	    if(cmd.hasOption("relay")){//convert the string the user input in -relay field to boolean.
-	       relay = Boolean.parseBoolean(cmd.getOptionValue("relay"));
+	    if(cmd.hasOption("relay")){
+	    		//convert the string the user input in -relay field to boolean.
+	    		relay = Boolean.parseBoolean(cmd.getOptionValue("relay"));
 	   }
 	    
 	    if(cmd.hasOption("host")){
-	    	//in fact, the hostnamePattern cannot find the error in ip format like 999.1234.999.1, because the pattern must fit hostname format.
-	    	//In other words, the hostipPattern becomes useless. it's included in hostnamePattern.
 			String hostipPattern = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 			String hostnamePattern = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
 			if(Pattern.matches(hostnamePattern, cmd.getOptionValue("host"))||Pattern.matches(hostipPattern, cmd.getOptionValue("host"))){
 				host = cmd.getOptionValue("host");
 			}
-			else System.out.println("invalid host");//should I output this here?
+			else System.out.println("invalid host");
 	    }
 	    
 	    if(cmd.hasOption("port")){
@@ -209,7 +224,7 @@ public class Client {
 			if(Pattern.matches(portPattern, cmd.getOptionValue("port"))){
 				port = Integer.parseInt(cmd.getOptionValue("port"));
 			}
-			else System.out.println("invalid port");//should I output this here?
+			else System.out.println("invalid port");
 		}
 	       
 	    if(cmd.hasOption("servers")){
@@ -230,13 +245,11 @@ public class Client {
 		       hasDebugOption = true;
 		   }   
 	    
-	    if(cmd.hasOption("command")){//switch?
+	    if(cmd.hasOption("command")){
 	        command = cmd.getOptionValue("command");
 	        switch (command){
 	        case "-publish":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"PUBLISH");
-	        					//command is a String
 	    						userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
-	    						//resource is a JSONObject
 	    						break;
 	        case "-remove":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"REMOVE");
 							userinputTemp.put(ConstantEnum.CommandType.resource.name(),resource); 
@@ -248,20 +261,22 @@ public class Client {
 	        case "-query":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"QUERY");
 	        				userinputTemp.put(ConstantEnum.CommandArgument.relay.name(),relay); 
 							userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
-							//resource & rsourceTemplate are with different names but in same format, so 1 JSONObject 'resource' is used as their format
+							/*resource & rsourceTemplate are with different names but in same format, so
+							1 JSONObject 'resource' is used as their format*/
 							break;
 	        case "-fetch":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"FETCH");
 	        					userinputTemp.put(ConstantEnum.CommandArgument.resourceTemplate.name(),resource); 
 	        					break;
+	       						//serverArray has been put before, so here we just put command 	        					
 	        case "-exchange":	userinputTemp.put(ConstantEnum.CommandType.command.name(),"EXCHANGE");	
-	       						//serverArray已经在前面put过了，这里只普通put command就行了 
 	       						break;
 	        default: break;	
 	        }
 	    }
 	    else {
+	    		//empty command field will be handled at the server
 	    		command ="";
-	    		userinputTemp.put(ConstantEnum.CommandType.command.name(), "");//more to be handled.
+	    		userinputTemp.put(ConstantEnum.CommandType.command.name(), "");
 	    }    
 			return userinputTemp;
 	}
@@ -270,14 +285,13 @@ public class Client {
 	
 
 	/**
-	 * print out the response.
+	 * print out the response and debug information.
 	 * @param input
 	 */
 	public static void handleServerResponse(JSONObject userInput, String input, DataInputStream in){
 
-
 		try {
-			//code below ---->debug printing
+			//print part of the debug information
 			JSONParser parser = new JSONParser();
 			JSONObject serverResponse;		
 			serverResponse = (JSONObject)parser.parse(input);
@@ -285,31 +299,29 @@ public class Client {
 		       System.out.println("RECEIVED: "+serverResponse.toJSONString());
 			}
 			
-			//code below ---->response printing in GSON format.
+			//print response in GSON format. 
 			JsonParser jsonParser = new JsonParser();
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			JsonElement element = jsonParser.parse(input);
 			String show = gson.toJson(element);
+			
 			//use the command type recorded when reading user's input
-			switch (commandType){//How to print out resource properly?
+			switch (commandType){
 			case "-publish":
 			case "-remove":
 			case "-share":
 			case "-exchange":
-//				System.out.println("response received from server: "+serverResponse.toJSONString());
 				System.out.println(show);
 				break;
 			case "-query":
-//				System.out.println("response received from server: "+serverResponse.toJSONString());
 				System.out.println(show);
 				break;
 			case "-fetch":
-//				System.out.println("response received from server: "+serverResponse.toJSONString());
 				System.out.println(show);
 				handleDownload(serverResponse,in);
 				break;
 			/*commandType remains "", and the pair {"command",""} was put into a JSONObject and sent to server.
-				Here we just print out the error message returned from server.*/
+				So here we just print out the error message returned from server. no need to handle empty command case*/
 			default: System.out.println("response received from server: "+serverResponse.toJSONString());
 				break;
 			}
@@ -318,7 +330,6 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
-	
 	
 
 	/**
@@ -329,43 +340,55 @@ public class Client {
 	public static void handleDownload(JSONObject serverResponse, DataInputStream in) {
 			if(serverResponse.containsKey("resourceSize")){
 				try{
-					// The file location
-					String fileName = "client_files/"+serverResponse.get("name");
+					// The file location to download to.
 					
-					System.out.println("client_files/"+serverResponse.get("name"));
-					// Create a RandomAccessFile to read and write the output file.
-					RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");
+					/**regexp to extract file name from uri*/
+					String uri = serverResponse.get("uri").toString();
+					String regex = "(\\w+\\.\\w+)";
+					Pattern pattern = Pattern.compile(regex);
+					Matcher matcher = pattern.matcher(uri);
 					
-					// Find out how much size is remaining to get from the server.
-					long fileSizeRemaining = (Long) serverResponse.get("resourceSize");
-					
-					int chunkSize = setChunkSize(fileSizeRemaining);
-					
-					// Represents the receiving buffer
-					byte[] receiveBuffer = new byte[chunkSize];
-					
-					// Variable used to read if there are remaining size left to read.
-					int num;
-					
-	//				System.out.println("Downloading "+fileName+" of size "+fileSizeRemaining);
-					while((num=in.read(receiveBuffer))>0){
-						// Write the received bytes into the RandomAccessFile
-						downloadingFile.write(Arrays.copyOf(receiveBuffer, num));
+					while(matcher.find()){
+						int start = matcher.start();
+						int end = matcher.end();
+						String fileName = uri.substring(start, end);
+						System.out.println("client_files/"+fileName);
+						String downloadFilePath = "client_files/"+fileName;
 						
-						// Reduce the file size left to read..
-						fileSizeRemaining-=num;
+						// Create a RandomAccessFile to read and write the output file.
+						RandomAccessFile downloadingFile = new RandomAccessFile(downloadFilePath, "rw");
 						
-						// Set the chunkSize again
-						chunkSize = setChunkSize(fileSizeRemaining);
-						receiveBuffer = new byte[chunkSize];
+						// Find out how much size is remaining to get from the server.
+						long fileSizeRemaining = (Long) serverResponse.get("resourceSize");
 						
-						// If you're done then break
-						if(fileSizeRemaining==0){
-							break;
+						int chunkSize = setChunkSize(fileSizeRemaining);
+						
+						// Represents the receiving buffer
+						byte[] receiveBuffer = new byte[chunkSize];
+						
+						// Variable used to read if there are remaining size left to read.
+						int num;
+						
+						while((num=in.read(receiveBuffer))>0){
+							// Write the received bytes into the RandomAccessFile
+							downloadingFile.write(Arrays.copyOf(receiveBuffer, num));
+							
+							// Reduce the file size left to read.
+							fileSizeRemaining-=num;
+							
+							// Set the chunkSize again
+							chunkSize = setChunkSize(fileSizeRemaining);
+							receiveBuffer = new byte[chunkSize];
+							
+							// If it's done then break
+							if(fileSizeRemaining==0){
+								break;
+						}
 					}
-				}
-	//			System.out.println("File received!");
-				downloadingFile.close();
+					downloadingFile.close();
+					}
+					
+					
 			} catch (UnknownHostException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
